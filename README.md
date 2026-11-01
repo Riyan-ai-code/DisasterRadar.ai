@@ -3,7 +3,7 @@
 > **AI-Powered Flood Intelligence, Hydrodynamic Modeling & Early Warning Platform**  
 > An end-to-end multi-tier platform integrating satellite hydrology (MODIS), deep learning (PyTorch FloodNet), native gradient boosted decision trees (XGBoost), geospatial GIS mapping, and real-time telemetry to predict flood inundation risks and orchestrate evacuation intelligence.
 
-[![GitHub Repo](https://img.shields.io/badge/GitHub-Riyan--ai--code%2FDisasterRadar.ai-blue?logo=github)](https://github.com/Riyan-ai-code/DisasterRadar.ai)
+[![GitHub Repo](https://img.shields.io/badge/GitHub-Shashank101--aiml%2FDisasterRadar.ai-blue?logo=github)](https://github.com/Shashank101-aiml/DisasterRadar.ai)
 [![Python](https://img.shields.io/badge/Python-3.10%20%7C%203.11%20%7C%203.12-blue?logo=python)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.109+-009688?logo=fastapi)](https://fastapi.tiangolo.com/)
 [![React](https://img.shields.io/badge/React-18.2+-61DAFB?logo=react)](https://react.dev/)
