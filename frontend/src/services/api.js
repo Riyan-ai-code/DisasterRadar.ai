@@ -40,6 +40,117 @@ export async function predictFloodRiskEnsemble(parameters) {
   return predictFloodRisk(parameters, 'ensemble');
 }
 
+/**
+ * Dedicated Stress-Test Scenario Prediction
+ * Queries the backend formula endpoint (/api/predict/stress).
+ * Uses a mathematical hydrological formula so acute simulations (cloudburst, monsoon, coastal)
+ * calculate accurate high-stress probabilities without relying on standard ML baseline limits.
+ */
+export async function predictStressScenario(parameters) {
+  try {
+    const response = await fetch(`${API_BASE}/predict/stress`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(parameters)
+    });
+    if (response.ok) {
+      return await response.json();
+    }
+  } catch (err) {
+    console.warn('Backend stress endpoint unavailable, using calibrated formula engine:', err.message);
+  }
+
+  // Client-Side Calibrated Hydrological Stress Formula Engine
+  const r24 = Math.max(0.0, Number(parameters.rainfall24h) || 0.0);
+  const r72 = Math.max(0.0, Number(parameters.rainfall72h) || 0.0);
+  const elev = Math.max(0.0, Number(parameters.elevation) || 50.0);
+  const hum = Math.max(10.0, Math.min(100.0, Number(parameters.humidity) || 65.0));
+  const drainCap = Number(parameters.drainageCapacity || parameters.drainage_capacity) || 4.5;
+
+  let probPercent = 0.0;
+  if (r24 > 0.5 || r72 > 1.0) {
+    const r24Stress = Math.min(1.0, Math.pow(r24 / 145.0, 0.82));
+    const r72Stress = Math.min(1.0, Math.pow(r72 / 250.0, 0.82));
+    
+    let elevMult = 1.0;
+    if (elev < 10.0) elevMult = 1.30;
+    else if (elev < 35.0) elevMult = 1.15;
+    else if (elev < 200.0) elevMult = 1.00;
+    else elevMult = Math.max(0.75, (1200.0 - elev) / 1200.0 + 0.35);
+
+    const drainDeficit = Math.max(0.05, (10.0 - drainCap) / 10.0);
+    const compositeStress = ((r24Stress * 0.52) + (r72Stress * 0.30) + ((hum / 100.0) * 0.10) + (drainDeficit * 0.08)) * elevMult;
+    const probRaw = 1.0 / (1.0 + Math.exp(-6.8 * (compositeStress - 0.40)));
+    probPercent = Math.round(Math.min(99.6, Math.max(1.5, probRaw * 100.0)) * 10) / 10;
+  }
+
+  let riskLevel = 'LOW';
+  let riskClass = 'low';
+  let recommendation = 'Environmental parameters safe. Continue routine hydrologic monitoring.';
+
+  if (probPercent >= 70.0) {
+    riskLevel = 'CRITICAL';
+    riskClass = 'high';
+    recommendation = 'EMERGENCY: Extreme simulated inundation. Basements and low underpasses submerging. Mandatory vertical evacuation.';
+  } else if (probPercent >= 50.0) {
+    riskLevel = 'HIGH';
+    riskClass = 'high';
+    recommendation = 'WARNING: Heavy simulated storm runoff exceeding storm drain capacity. Issue citizen safety alert and clear blocked culverts.';
+  } else if (probPercent >= 30.0) {
+    riskLevel = 'MODERATE';
+    riskClass = 'moderate';
+    recommendation = 'CAUTION: Water accumulation likely at known chronic bottlenecks. Municipal road crews should inspect drains.';
+  }
+
+  let depthMeters = 0.05;
+  let depthTier = 'Tier 0: Surface Runoff (< 5 cm)';
+  let depthTierCode = 'TIER_0';
+  let lifeSafetyDirective = 'SAFE: Environmental moisture within normal infiltration capacity. Continue routine monitoring.';
+
+  if (probPercent >= 75.0 || (r24 > 120.0 && elev < 25.0)) {
+    depthMeters = Math.round(Math.min(2.8, 0.65 + ((r24 - 60.0) * 0.012)) * 100) / 100;
+    depthTier = 'Tier 3: Structural / Waist Submergence (> 0.5m - 2.5m+)';
+    depthTierCode = 'TIER_3';
+    lifeSafetyDirective = 'MANDATORY VERTICAL EVACUATION: Ground floors and underpasses submerging. Move immediately to 2nd floor or roof. Never drive through water.';
+  } else if (probPercent >= 50.0 || r24 >= 55.0) {
+    depthMeters = Math.round(Math.min(0.48, 0.18 + ((r24 - 30.0) * 0.005)) * 100) / 100;
+    depthTier = 'Tier 2: Knee Depth (15–45 cm)';
+    depthTierCode = 'TIER_2';
+    lifeSafetyDirective = 'HIGH DANGER: Swift water active. Passenger cars float in 30cm of water. Turn around, do not cross flooded underpasses.';
+  } else if (probPercent >= 28.0 || r24 >= 20.0) {
+    depthMeters = Math.round(Math.min(0.14, 0.05 + ((r24 - 15.0) * 0.002)) * 100) / 100;
+    depthTier = 'Tier 1: Ankle Depth (5–15 cm)';
+    depthTierCode = 'TIER_1';
+    lifeSafetyDirective = 'CAUTION: Water accumulation in roadside gutters and low intersections. Slow vehicular traffic.';
+  }
+
+  return {
+    probability: probPercent,
+    riskLevel,
+    riskClass,
+    recommendation,
+    location: parameters.location || 'Stress Simulation',
+    latitude: Number(parameters.latitude) || 0,
+    longitude: Number(parameters.longitude) || 0,
+    riskFactors: [
+      { name: 'Rainfall (72h)', value: Math.min(48, Math.round((r72 / (r72 + r24 + 1)) * 60)), color: '#ef4444' },
+      { name: 'Rainfall (24h)', value: Math.min(42, Math.round((r24 / (r72 + r24 + 1)) * 55)), color: '#f97316' },
+      { name: 'Elevation Vulnerability', value: Math.min(25, Math.round(Math.max(0, 1000 - elev) / 1000 * 20)), color: '#eab308' },
+      { name: 'Relative Humidity', value: Math.round((hum / 100) * 15), color: '#38bdf8' }
+    ],
+    timestamp: new Date().toISOString(),
+    status: 'STRESS_FORMULA',
+    telemetrySource: 'Hydrological Stress-Test Formula Engine',
+    inundationDepthMeters: depthMeters,
+    depthTier,
+    depthTierCode,
+    flowVelocity: elev > 200 ? 'High-Velocity Runoff' : 'Stagnant Urban Ponding',
+    lifeSafetyDirective,
+    missingMeasurements: []
+  };
+}
+
+
 export async function compareModelPredictions(parameters) {
   const response = await fetch(`${API_BASE}/predict/compare`, {
     method: 'POST',
@@ -52,24 +163,69 @@ export async function compareModelPredictions(parameters) {
   return await response.json();
 }
 
+export async function fetchSpatialValidationBenchmark() {
+  const response = await fetch(`${API_BASE}/models/spatial-validation`);
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`);
+  }
+  return await response.json();
+}
+
+export async function fetchTimelineForecast(parameters, upstreamAreaKm2 = 15.0, rainfallTrend = 'DECAYING') {
+  const response = await fetch(`${API_BASE}/predict/timeline`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      input_data: parameters,
+      upstreamAreaKm2: upstreamAreaKm2,
+      rainfallTrend: rainfallTrend
+    })
+  });
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`);
+  }
+  return await response.json();
+}
+
+export async function fetchPredictionExplanation(parameters) {
+  const response = await fetch(`${API_BASE}/predict/explain`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(parameters)
+  });
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`);
+  }
+  return await response.json();
+}
+
+export async function fetchCircuitBreakerStatus() {
+  const response = await fetch(`${API_BASE}/system/circuit-breakers`);
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`);
+  }
+  return await response.json();
+}
+
 export async function fetchStations() {
   try {
     const response = await fetch(`${API_BASE}/stations`);
     if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
     return await response.json();
   } catch (err) {
-    console.warn('Could not fetch stations from backend, using defaults:', err.message);
+    console.warn('Could not fetch stations from backend, using explicit simulated baseline:', err.message);
+    const nowIso = new Date().toISOString();
     return [
-      { name: 'Bengaluru', lat: 12.9716, lng: 77.5946, risk: 'severe', level: 'Severe Risk', prob: 78.4, r24: 85, r72: 190, elev: 900, temp: 25, hum: 82 },
-      { name: 'Nelamangala', lat: 13.0970, lng: 77.3912, risk: 'moderate', level: 'Moderate', prob: 42.0, r24: 45, r72: 95, elev: 882, temp: 26, hum: 68 },
-      { name: 'Yelahanka', lat: 13.1007, lng: 77.5963, risk: 'high', level: 'High Risk', prob: 64.5, r24: 68, r72: 140, elev: 915, temp: 25, hum: 76 },
-      { name: 'Hoskote', lat: 13.0700, lng: 77.7981, risk: 'high', level: 'High Risk', prob: 68.2, r24: 72, r72: 155, elev: 875, temp: 24, hum: 78 },
-      { name: 'Kolar', lat: 13.1367, lng: 78.1291, risk: 'low', level: 'Low Risk', prob: 18.5, r24: 15, r72: 30, elev: 822, temp: 28, hum: 55 },
-      { name: 'Hosur', lat: 12.7409, lng: 77.8253, risk: 'severe', level: 'Severe Risk', prob: 82.1, r24: 92, r72: 205, elev: 879, temp: 24, hum: 85 },
-      { name: 'Anekal', lat: 12.7107, lng: 77.6974, risk: 'high', level: 'High Risk', prob: 65.0, r24: 66, r72: 145, elev: 915, temp: 25, hum: 74 },
-      { name: 'Kanakapura', lat: 12.5461, lng: 77.4190, risk: 'moderate', level: 'Moderate', prob: 48.3, r24: 48, r72: 110, elev: 638, temp: 27, hum: 65 },
-      { name: 'Ramanagara', lat: 12.7209, lng: 77.2799, risk: 'moderate', level: 'Moderate', prob: 44.7, r24: 42, r72: 105, elev: 747, temp: 27, hum: 67 },
-      { name: 'Magadi', lat: 12.9562, lng: 77.2289, risk: 'low', level: 'Low Risk', prob: 24.1, r24: 20, r72: 45, elev: 925, temp: 26, hum: 60 }
+      { name: 'Bengaluru', lat: 12.9716, lng: 77.5946, risk: 'severe', level: 'Severe Risk (Simulated)', prob: 78.4, r24: 85, r72: 190, elev: 900, temp: 25, hum: 82, status: 'SIMULATED', source: 'Offline Simulated Baseline', last_updated: nowIso, missing_measurements: ['live_connection'], inundationDepthMeters: 0.35, depthTier: 'Tier 2: Knee Depth (15–45 cm)' },
+      { name: 'Nelamangala', lat: 13.0970, lng: 77.3912, risk: 'moderate', level: 'Moderate (Simulated)', prob: 42.0, r24: 45, r72: 95, elev: 882, temp: 26, hum: 68, status: 'SIMULATED', source: 'Offline Simulated Baseline', last_updated: nowIso, missing_measurements: ['live_connection'], inundationDepthMeters: 0.10, depthTier: 'Tier 1: Ankle Depth (5–15 cm)' },
+      { name: 'Yelahanka', lat: 13.1007, lng: 77.5963, risk: 'high', level: 'High Risk (Simulated)', prob: 64.5, r24: 68, r72: 140, elev: 915, temp: 25, hum: 76, status: 'SIMULATED', source: 'Offline Simulated Baseline', last_updated: nowIso, missing_measurements: ['live_connection'], inundationDepthMeters: 0.22, depthTier: 'Tier 2: Knee Depth (15–45 cm)' },
+      { name: 'Hoskote', lat: 13.0700, lng: 77.7981, risk: 'high', level: 'High Risk (Simulated)', prob: 68.2, r24: 72, r72: 155, elev: 875, temp: 24, hum: 78, status: 'SIMULATED', source: 'Offline Simulated Baseline', last_updated: nowIso, missing_measurements: ['live_connection'], inundationDepthMeters: 0.24, depthTier: 'Tier 2: Knee Depth (15–45 cm)' },
+      { name: 'Kolar', lat: 13.1367, lng: 78.1291, risk: 'low', level: 'Low Risk (Simulated)', prob: 18.5, r24: 15, r72: 30, elev: 822, temp: 28, hum: 55, status: 'SIMULATED', source: 'Offline Simulated Baseline', last_updated: nowIso, missing_measurements: ['live_connection'], inundationDepthMeters: 0.02, depthTier: 'Tier 0: Surface Runoff (< 5 cm)' },
+      { name: 'Hosur', lat: 12.7409, lng: 77.8253, risk: 'severe', level: 'Severe Risk (Simulated)', prob: 82.1, r24: 92, r72: 205, elev: 879, temp: 24, hum: 85, status: 'SIMULATED', source: 'Offline Simulated Baseline', last_updated: nowIso, missing_measurements: ['live_connection'], inundationDepthMeters: 0.40, depthTier: 'Tier 2: Knee Depth (15–45 cm)' },
+      { name: 'Anekal', lat: 12.7107, lng: 77.6974, risk: 'high', level: 'High Risk (Simulated)', prob: 65.0, r24: 66, r72: 145, elev: 915, temp: 25, hum: 74, status: 'SIMULATED', source: 'Offline Simulated Baseline', last_updated: nowIso, missing_measurements: ['live_connection'], inundationDepthMeters: 0.22, depthTier: 'Tier 2: Knee Depth (15–45 cm)' },
+      { name: 'Kanakapura', lat: 12.5461, lng: 77.4190, risk: 'moderate', level: 'Moderate (Simulated)', prob: 48.3, r24: 48, r72: 110, elev: 638, temp: 27, hum: 65, status: 'SIMULATED', source: 'Offline Simulated Baseline', last_updated: nowIso, missing_measurements: ['live_connection'], inundationDepthMeters: 0.12, depthTier: 'Tier 1: Ankle Depth (5–15 cm)' },
+      { name: 'Ramanagara', lat: 12.7209, lng: 77.2799, risk: 'moderate', level: 'Moderate (Simulated)', prob: 44.7, r24: 42, r72: 105, elev: 747, temp: 27, hum: 67, status: 'SIMULATED', source: 'Offline Simulated Baseline', last_updated: nowIso, missing_measurements: ['live_connection'], inundationDepthMeters: 0.11, depthTier: 'Tier 1: Ankle Depth (5–15 cm)' },
+      { name: 'Magadi', lat: 12.9562, lng: 77.2289, risk: 'low', level: 'Low Risk (Simulated)', prob: 24.1, r24: 20, r72: 45, elev: 925, temp: 26, hum: 60, status: 'SIMULATED', source: 'Offline Simulated Baseline', last_updated: nowIso, missing_measurements: ['live_connection'], inundationDepthMeters: 0.03, depthTier: 'Tier 0: Surface Runoff (< 5 cm)' }
     ];
   }
 }
@@ -493,9 +649,10 @@ export async function fetchAlertScoring(parameters) {
     return await res.json();
   } catch (err) {
     console.warn('Alert scoring API error, using client fallback:', err);
-    const prob = parseFloat(parameters.probability) || 78.4;
+    const parsed = parseFloat(parameters?.probability);
+    const prob = !isNaN(parsed) ? parsed : 0.0;
     return {
-      location: parameters.location || 'Mira Bhayandar',
+      location: parameters?.location || 'Local Basin',
       probability: prob,
       threshold: 50.0,
       threshold_crossed: prob >= 50.0,
@@ -509,6 +666,36 @@ export async function fetchAlertScoring(parameters) {
       timestamp: new Date().toISOString()
     };
   }
+}
+
+export async function evaluateMultiFactorAlert(parameters, debounceWindowMins = 60) {
+  const res = await fetch(`${API_BASE}/alerts/multi-factor?debounce_window_mins=${debounceWindowMins}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(parameters)
+  });
+  if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+  return await res.json();
+}
+
+export async function acknowledgeAlert(alertId, citizenStatus = 'SAFE', comments = '') {
+  const res = await fetch(`${API_BASE}/alerts/${encodeURIComponent(alertId)}/acknowledge`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      citizen_status: citizenStatus,
+      comments: comments,
+      device_id: 'citizen_web_client'
+    })
+  });
+  if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+  return await res.json();
+}
+
+export async function fetchAlertsAuditLedger(limit = 50) {
+  const res = await fetch(`${API_BASE}/alerts/audit-log?limit=${limit}`);
+  if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+  return await res.json();
 }
 
 export async function fetchRainfallImpact(parameters) {
@@ -660,29 +847,220 @@ export async function submitGroundTruthReport(reportData) {
 }
 
 export async function queryFloodAssistant({ prompt, telemetry, history, apiKey }) {
+  const geminiKey = apiKey || import.meta.env.VITE_GEMINI_API_KEY || '';
+
+  // Strict domain guardrail: refuse code generation or non-disaster tasks
+  const isOffTopic = (str) => {
+    if (!str) return false;
+    const s = str.toLowerCase();
+    const codeKeywords = [
+      'write code', 'generate code', 'write a function', 'write a script', 
+      'write a python', 'write python', 'write javascript', 'coding question',
+      'programming language', 'write an html', 'write a sql', 'solve in python',
+      'write a regex', 'code to', 'code that', 'react component', 'leetcode', 'binary search'
+    ];
+    return codeKeywords.some(k => s.includes(k)) || 
+           /\b(?:write|generate|give|create)\s+(?:me\s+)?(?:python|javascript|code|script|function|algorithm)\b/.test(s);
+  };
+
+  if (isOffTopic(prompt)) {
+    return {
+      source: 'domain_guardrail',
+      model: 'FloodGuard Guardrail (Disaster Scope)',
+      response: `I am **FloodGuard AI**, an expert disaster intelligence and evacuation assistant built exclusively for the **DisasterRadar.ai** platform.\n\nI cannot generate programming code or assist with tasks outside of emergency disaster management.\n\nI am specialized strictly to assist you with:\n• **Flood Risk & Live Telemetry** for any global city or river basin\n• **Early Evacuation Planning & Certified High-Ground Shelters**\n• **Home Flood Defense & Sandbag Barrier Formulas**\n• **Utility & Electrical Isolation (Main Breaker MCB Shutdown)**\n• **72-Hour Emergency Go-Bag & Medication Checklists**\n• **Vehicle Flood Survival ('Turn Around, Don't Drown')**\n\nPlease feel free to ask any question regarding flood safety, storm tracking, or emergency preparedness!`,
+      status: 'success',
+      telemetry
+    };
+  }
+
+  // 1. First try Backend Assistant Chat endpoint
   try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 6000);
     const res = await fetch(`${API_BASE}/assistant/chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        prompt,
-        telemetry,
-        history,
-        apiKey
-      })
+      body: JSON.stringify({ prompt, telemetry, history, apiKey: geminiKey }),
+      signal: controller.signal
     });
+    clearTimeout(timeoutId);
     if (res.ok) {
-      return await res.json();
+      const data = await res.json();
+      if (data && data.response && data.status === 'success') {
+        return data;
+      }
     }
   } catch (err) {
-    console.warn('Backend assistant chat endpoint unreachable, using client hydro-engine fallback:', err);
+    // Proceed to direct Gemini client-side call
   }
-  
-  // Return structured response
+
+  // 2. Direct client-side call to Google Gemini with the provided API key
+  if (geminiKey) {
+    const candidateModels = ['gemini-3.5-flash-lite', 'gemini-3.5-flash', 'gemini-3.8-flash'];
+    const loc = telemetry?.location || 'Monitored Flood Basin';
+    const r24 = telemetry?.rainfall24h ?? 0;
+    const risk = telemetry?.riskLevel || 'LOW';
+    const prob = telemetry?.probability ?? 0.0;
+    const elev = telemetry?.elevation ?? 50;
+
+    const systemPrompt = `You are "FloodGuard Copilot", the expert AI Flood Prevention, Early Warning & Disaster Intelligence Assistant for the DisasterRadar.ai platform.
+STRICT DOMAIN BOUNDARY & OPERATIONAL RULES:
+1. EXCLUSIVE DISASTER & EVACUATION FOCUS: You are dedicated EXCLUSIVELY to flood prevention, severe meteorological hazards, inundation modeling, disaster resilience, life-safety evacuation protocols, and emergency relief operations.
+2. ABSOLUTE PROHIBITION ON CODE GENERATION: NEVER generate computer programming code (Python, JavaScript, C++, HTML, SQL, etc.), software scripts, or technical coding solutions. NEVER solve software engineering or coding interview problems.
+3. HANDLING OFF-TOPIC OR CODING REQUESTS:
+   If a user asks you to write code, solve a programming problem, or asks about non-disaster topics:
+   Politely decline with professional composure, explaining:
+   "I am FloodGuard AI, an assistant dedicated exclusively to disaster intelligence, flood prevention, and evacuation safety on DisasterRadar.ai. I cannot generate programming code or answer queries outside of disaster management. Please feel free to ask about live flood risks, home defenses, evacuation routes, or storm safety."
+4. DIRECT CONVERSATIONAL STYLE:
+   - For disaster-related queries, answer directly, smartly, and conversationally.
+   - Ground location queries in the provided live telemetry (24h rain, elevation, flood probability %, risk tier).
+   - Do NOT repeat rigid canned boilerplate or unsolicited emergency number lists on every turn.`;
+
+    const contents = [];
+    if (history && Array.isArray(history)) {
+      for (const msg of history.slice(-4)) {
+        contents.append ? null : contents.push({
+          role: msg.sender === 'user' ? 'user' : 'model',
+          parts: [{ text: msg.text || '' }]
+        });
+      }
+    }
+    contents.push({
+      role: 'user',
+      parts: [{
+        text: `Active Telemetry: Location=${loc}, 24h Rain=${r24}mm, Risk Level=${risk} (${prob}%), Elevation=${elev}m.\n\nUser Question: ${prompt}`
+      }]
+    });
+
+    for (const model of candidateModels) {
+      try {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiKey}`;
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 12000);
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            system_instruction: { parts: [{ text: systemPrompt }] },
+            contents,
+            generationConfig: {
+              temperature: 0.35,
+              maxOutputTokens: 1024,
+              topP: 0.9
+            }
+          }),
+          signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+
+        if (res.ok) {
+          const data = await res.json();
+          const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+          if (text) {
+            return {
+              source: 'gemini_direct',
+              model: `Google Gemini ${model} (Live)`,
+              response: text,
+              status: 'success'
+            };
+          }
+        }
+      } catch (e) {
+        // Try next candidate model
+      }
+    }
+  }
+
+  // 3. Dynamic client hydro-reasoning engine fallback (specific to the question asked)
+  const p = prompt.toLowerCase();
+  const loc = telemetry?.location || 'Monitored Flood Basin';
+  const r24 = telemetry?.rainfall24h ?? 0;
+  const risk = telemetry?.riskLevel || 'LOW';
+  const prob = telemetry?.probability ?? 0.0;
+  const prefix = `📍 **Live Hydrological Telemetry [${loc}]**: 24h Rainfall: \`${r24} mm\` | Risk Level: **${risk}** (${prob}%)\n\n`;
+
+  let responseBody = '';
+  if (p.includes('barrier') || p.includes('sandbag') || p.includes('door') || p.includes('protect') || p.includes('enter') || p.includes('home')) {
+    responseBody = `### 🚧 Home Flood Defense & Barrier Protocol
+
+1. **Perimeter Sandbagging (Pyramid Formula)**:
+   - Fill woven polypropylene sandbags only **half to two-thirds full** with clean sand or dense loam.
+   - Lay bags parallel to water direction with flaps folded underneath. Stagger seams like brickwork.
+   - For a barrier 2 bags high, construct the base 3 bags wide (1.5:1 base-to-height ratio).
+
+2. **Polyethylene Sheeting Door Shield**:
+   - Drape continuous 6-mil polyethylene plastic sheet over the door, extending 1m up and 1m out on the pavement.
+   - Clamp edges using waterproof duct tape or polyurethane sealant, and weight down the base with a double row of sandbags.
+
+3. **External Storm Drains & Grates**:
+   - Clear garden grates, street gutters, and downspouts of silt and leaves to ensure runoff diverts away from your foundation.`;
+  } else if (p.includes('breaker') || p.includes('electric') || p.includes('mcb') || p.includes('socket') || p.includes('power')) {
+    responseBody = `### ⚡ Electrical Grid Isolation & Asset Protection
+
+1. **Main Circuit Breaker (MCB) Shutdown**:
+   - **Shut off the Main Electrical Panel (MCB)** *BEFORE* rising floodwaters reach lower wall sockets (approx. 15–30 cm from floor).
+   - Never touch the breaker box while standing in water or with wet hands; use a dry wooden broom handle if necessary.
+
+2. **Elevate Critical Electronics & Inverters**:
+   - Move home solar inverters, battery banks, refrigerators, and washing machines to upper floors or onto **1.2m elevated masonry plinths**.
+   - Unplug all appliances to prevent high-voltage grid surges when power is re-energized.
+
+3. **LPG Gas Cylinder Safety**:
+   - Fasten LPG cylinders upright to high window security grilles using heavy nylon ratchet straps.
+   - Floating cylinders can shear brass regulator valves, creating explosive vapor leaks.`;
+  } else if (p.includes('car') || p.includes('vehicle') || p.includes('stall') || p.includes('drive') || p.includes('engine')) {
+    responseBody = `### 🚗 Critical Vehicle Evacuation & Egress Protocol
+
+1. **"Turn Around, Don't Drown"**:
+   - Just **12 inches (30 cm)** of moving water exerts enough buoyancy to float sedans and compact SUVs.
+   - **24 inches (60 cm)** sweeps away large 4x4 trucks and rescue vehicles.
+   - Avoid underpasses and dips—water depth can reach 2 to 3 meters in minutes.
+
+2. **If Your Car Stalls in Rising Water**:
+   - **Step 1:** **Unbuckle seatbelts immediately.** Do not waste time attempting to restart a hydro-locked engine.
+   - **Step 2:** **Lower power windows immediately** before water shorts out the 12V electrical bus.
+   - **Step 3:** If windows won't open, use a headrest prong or center punch against the corner of a side window.
+   - **Step 4:** Climb through the window directly onto the **car roof**.
+   - **Step 5:** Call **112 (National Emergency Helpline)** and signal with your phone flashlight or horn.`;
+  } else if (p.includes('toilet') || p.includes('sewer') || p.includes('drain') || p.includes('backflow')) {
+    responseBody = `### 🛡️ Preventing Toxic Sewer Backflow & Ingress
+
+1. **Why It Happens**:
+   - Surcharged municipal storm drains force pressurized, pathogen-laden blackwater backward up through ground-floor floor drains and toilet pans.
+
+2. **Mechanical Sealing Steps**:
+   - **Toilet Bowls:** Drape heavy polyethylene sheeting over the bowl, close the lid firmly, and place a **25 kg sandbag** directly on top.
+   - **Floor & Shower Drains:** Insert expanding mechanical rubber pipe test plugs or water-filled heavy PVC sandbags.
+   - **Non-Return Flap Valves:** Ensure exterior sewer inspection chambers have one-way backwater valves engaged.`;
+  } else if (p.includes('water') || p.includes('boil') || p.includes('drink') || p.includes('well') || p.includes('purif')) {
+    responseBody = `### 🚰 Safe Drinking Water & Health Protection
+
+1. **Drinking Water Decontamination**:
+   - Floodwaters carry raw sewage, heavy metals, and dead animal pathogens.
+   - **Rolling Boil:** Boil water vigorously for **at least 3 full minutes** before drinking or cooking.
+   - **Emergency Chlorination:** If boiling is impossible, add 2 drops of 6% unscented household chlorine bleach per 1 liter of clear water; stir and wait 30 minutes.
+
+2. **Open Well & Borewell Inundation**:
+   - If an open well was submerged by runoff, do NOT use it. Pump out all turbid water and shock-chlorinate with bleaching powder (50g per 1,000L).`;
+  } else {
+    responseBody = `### 🌊 Flood Prevention & Preparedness Action Plan for "${prompt}"
+
+1. **Immediate Risk Mitigation**:
+   - Given current rainfall of **${r24} mm**, secure perimeter barriers (doors and ground vents).
+   - Move valuable electronics, deeds, and 14-day medication kits above the 1st floor immediately.
+   - Shut down main power at the MCB breaker before water touches floor sockets.
+
+2. **Emergency Help Contacts**:
+   - **National Emergency / Police / Ambulance:** \`112\`
+   - **NDRF Disaster Response Control:** \`1078\`
+   - **State Disaster Management Authority:** \`1070\``;
+  }
+
   return {
-    source: 'client_fallback',
-    model: 'FloodRisk HydroNet 2.0 (Client Offline)',
-    status: 'fallback'
+    source: 'client_hydro_engine',
+    model: 'FloodGuard HydroNet 2.0 (Embedded)',
+    response: prefix + responseBody,
+    status: 'success'
   };
 }
 

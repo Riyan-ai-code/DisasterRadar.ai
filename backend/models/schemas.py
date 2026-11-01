@@ -28,6 +28,8 @@ class PredictionInput(BaseModel):
     current_rainfall: Optional[float] = Field(None, description="Active instantaneous rainfall rate in mm/h")
     isRaining: Optional[bool] = Field(None, description="Active precipitation occurring at location")
     is_raining: Optional[bool] = Field(None, description="Active precipitation occurring at location")
+    upstreamAreaKm2: Optional[float] = Field(None, description="Upstream catchment basin area in sq km")
+    upstream_area_km2: Optional[float] = Field(None, description="Upstream catchment basin area in sq km")
 
 class RiskFactor(BaseModel):
     name: str
@@ -43,6 +45,15 @@ class PredictionResponse(BaseModel):
     latitude: float
     longitude: float
     riskFactors: List[RiskFactor]
+    timestamp: Optional[str] = Field(None, description="ISO timestamp of prediction generation")
+    status: Optional[str] = Field("LIVE", description="Data status: LIVE | DELAYED | SIMULATED | UNAVAILABLE")
+    telemetrySource: Optional[str] = Field("Open-Meteo Global NWP & Copernicus DEM", description="Telemetry data provider")
+    inundationDepthMeters: Optional[float] = Field(0.0, description="Estimated physical water accumulation depth in meters")
+    depthTier: Optional[str] = Field("Tier 0: Surface Runoff (< 5 cm)", description="Physical water depth classification")
+    depthTierCode: Optional[str] = Field("TIER_0", description="Depth tier machine identifier: TIER_0 | TIER_1 | TIER_2 | TIER_3")
+    flowVelocity: Optional[str] = Field("Stagnant Urban Ponding", description="Hydrological runoff velocity description")
+    lifeSafetyDirective: Optional[str] = Field("SAFE: Conditions normal. Keep drains clear.", description="Physical depth-informed emergency action directive")
+    missingMeasurements: Optional[List[str]] = Field(default_factory=list, description="List of unobserved/missing telemetry inputs")
 
 class StationData(BaseModel):
     name: str
@@ -56,6 +67,12 @@ class StationData(BaseModel):
     elev: float
     temp: float
     hum: float
+    source: Optional[str] = Field("Open-Meteo Global NWP & Copernicus DEM", description="Origin of station telemetry")
+    last_updated: Optional[str] = Field(None, description="Timestamp of telemetry acquisition")
+    status: Optional[str] = Field("LIVE", description="Station operational status: LIVE | DELAYED | SIMULATED | UNAVAILABLE")
+    missing_measurements: Optional[List[str]] = Field(default_factory=list, description="List of missing sensor parameters")
+    inundationDepthMeters: Optional[float] = Field(0.0, description="Estimated surface water depth in meters")
+    depthTier: Optional[str] = Field("Tier 0: Surface Runoff", description="Physical depth tier for this station")
 
 class ConfusionMatrix(BaseModel):
     actualNoFlood_predictedNoFlood: int
@@ -77,6 +94,8 @@ class RecentPrediction(BaseModel):
     location: str
     probability: float
     riskLevel: str
+    status: Optional[str] = Field("LIVE_AUDIT", description="LIVE_AUDIT or DEMO_AUDIT")
+    depthTier: Optional[str] = Field(None, description="Physical depth tier")
 
 class ModelPrediction(BaseModel):
     modelId: str
@@ -108,6 +127,17 @@ class ActiveAlertItem(BaseModel):
     rainfall72h: float
     waterDepthEstCm: float
     timestamp: str
+    status: Optional[str] = "ACTIVE"
+    deliveryStatus: Optional[str] = "DELIVERED"
+    channels: Optional[List[str]] = Field(default_factory=lambda: ["SMS", "WhatsApp", "CAP"])
+    citizenConfirms: Optional[int] = 0
+    citizenAssistanceNeeded: Optional[int] = 0
+    triggerFactors: Optional[List[dict]] = None
+
+class CitizenAcknowledgeRequest(BaseModel):
+    citizen_status: str = Field(..., description="SAFE | CONFIRMED_FLOOD_ON_GROUND | NEED_ASSISTANCE")
+    comments: Optional[str] = None
+    device_id: Optional[str] = None
 
 class AlertsListResponse(BaseModel):
     totalActive: int
@@ -183,4 +213,41 @@ class AssistantChatRequest(BaseModel):
     telemetry: Optional[dict] = None
     history: Optional[List[dict]] = None
     apiKey: Optional[str] = None
+
+class TimelineHorizonPoint(BaseModel):
+    horizon_hours: int
+    horizon_label: str
+    forecast_timestamp: str
+    probability: float
+    risk_level: str
+    inundation_depth_meters: float
+    depth_tier: str
+    flow_velocity: str
+    life_safety_directive: str
+    surge_inflow_active: bool
+    simulated_rainfall_mm: float
+
+class CatchmentHydrodynamics(BaseModel):
+    upstream_area_km2: float
+    catchment_length_km: float
+    transit_time_hours: float
+    peak_flow_m3s: float
+    runoff_coefficient: float
+    surge_tier: str
+    surge_advisory: str
+
+class TimelineForecastRequest(BaseModel):
+    input_data: PredictionInput
+    upstreamAreaKm2: Optional[float] = 15.0
+    rainfallTrend: Optional[str] = "DECAYING"
+
+class TimelineForecastResponse(BaseModel):
+    location: str
+    generated_at: str
+    rainfall_trend: str
+    peak_threat_horizon: str
+    peak_probability: float
+    peak_depth_meters: float
+    catchment_hydrodynamics: CatchmentHydrodynamics
+    forecast_timeline: List[TimelineHorizonPoint]
 

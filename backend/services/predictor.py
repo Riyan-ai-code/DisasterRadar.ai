@@ -9,8 +9,15 @@ import math
 import pandas as pd
 import xgboost as xgb
 from models.schemas import PredictionInput, PredictionResponse
+from datetime import datetime
 from config import settings
-from services.feature_engineering import build_feature_row, classify_risk, compute_risk_factors
+from services.feature_engineering import (
+    build_feature_row,
+    classify_risk,
+    compute_risk_factors,
+    calculate_inundation_physics,
+    detect_missing_measurements
+)
 
 _xgb_booster = None
 
@@ -53,6 +60,8 @@ def predict_flood_risk(params: PredictionInput) -> PredictionResponse:
 
     risk_level, risk_class, recommendation = classify_risk(prob_percent)
     risk_factors = compute_risk_factors(params)
+    physics = calculate_inundation_physics(params, prob_percent)
+    missing = detect_missing_measurements(params)
 
     return PredictionResponse(
         probability=prob_percent,
@@ -62,5 +71,14 @@ def predict_flood_risk(params: PredictionInput) -> PredictionResponse:
         location=params.location or "Custom Coordinate",
         latitude=params.latitude,
         longitude=params.longitude,
-        riskFactors=risk_factors
+        riskFactors=risk_factors,
+        timestamp=datetime.now().isoformat(),
+        status="LIVE" if len(missing) < 4 else "SIMULATED",
+        telemetrySource="Open-Meteo Global NWP & Copernicus DEM",
+        inundationDepthMeters=physics["depth_meters"],
+        depthTier=physics["tier_label"],
+        depthTierCode=physics["tier_code"],
+        flowVelocity=physics["flow_velocity"],
+        lifeSafetyDirective=physics["life_safety_directive"],
+        missingMeasurements=missing
     )

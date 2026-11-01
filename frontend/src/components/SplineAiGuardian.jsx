@@ -35,11 +35,17 @@ export default function SplineAiGuardian({
     const camera = new THREE.PerspectiveCamera(40, width / height, 0.1, 100);
     camera.position.set(0, 1.2, 4.2);
 
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-    renderer.setSize(width, height);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    renderer.shadowMap.enabled = true;
-    container.appendChild(renderer.domElement);
+    let renderer;
+    try {
+      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      renderer.setSize(width, height);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.shadowMap.enabled = true;
+      container.appendChild(renderer.domElement);
+    } catch (e) {
+      console.warn('WebGL context creation failed for SplineAiGuardian:', e);
+      return;
+    }
 
     // 2. Lighting Rig
     const ambientLight = new THREE.AmbientLight(0x0f172a, 1.6);

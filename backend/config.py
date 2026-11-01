@@ -54,7 +54,7 @@ class Settings:
 
     # 6. Google Gemini AI Copilot
     GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
-    GEMINI_MODEL: str = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
+    GEMINI_MODEL: str = os.getenv("GEMINI_MODEL", "gemini-3.5-flash-lite")
 
     # 7. Application Settings
     APP_ENV: str = os.getenv("APP_ENV", "development")

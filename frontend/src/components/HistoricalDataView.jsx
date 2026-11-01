@@ -436,39 +436,18 @@ export default function HistoricalDataView({ currentLocation, onBackToDashboard,
           style={{
             background: 'none',
             border: 'none',
-            borderBottom: subTab === 'events' ? '3px solid #0284c7' : '3px solid transparent',
-            color: subTab === 'events' ? '#38bdf8' : '#94a3b8',
+            borderBottom: '3px solid #0284c7',
+            color: '#38bdf8',
             fontWeight: 700,
             fontSize: '0.92rem',
             padding: '10px 16px',
-            cursor: 'pointer',
+            cursor: 'default',
             display: 'flex',
             alignItems: 'center',
-            gap: '6px',
-            transition: 'color 0.15s ease'
+            gap: '6px'
           }}
         >
           📜 Major Inundation Disasters ({locationEvents.length})
-        </button>
-
-        <button
-          onClick={() => setSubTab('audit')}
-          style={{
-            background: 'none',
-            border: 'none',
-            borderBottom: subTab === 'audit' ? '3px solid #0284c7' : '3px solid transparent',
-            color: subTab === 'audit' ? '#38bdf8' : '#94a3b8',
-            fontWeight: 700,
-            fontSize: '0.92rem',
-            padding: '10px 16px',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            transition: 'color 0.15s ease'
-          }}
-        >
-          🕒 Live Prediction Audit Log
         </button>
       </div>
 
@@ -599,68 +578,6 @@ export default function HistoricalDataView({ currentLocation, onBackToDashboard,
                         <div style={{ color: '#64748b', fontSize: '0.7rem', marginTop: '3px' }}>
                           Source: {ev.verified_source}
                         </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      {/* SUB-TAB 2: LIVE PREDICTION AUDIT LOG */}
-      {subTab === 'audit' && (
-        <div>
-          <div style={{ background: '#0b1120', borderLeft: '4px solid #0284c7', border: '1px solid rgba(56, 189, 248, 0.2)', padding: '14px 18px', borderRadius: '8px', marginBottom: '16px' }}>
-            <strong style={{ color: '#38bdf8', fontSize: '0.86rem' }}>Persistent ML Audit Trail for {locName}:</strong>
-            <p style={{ color: '#94a3b8', fontSize: '0.8rem', margin: '4px 0 0 0' }}>
-              Every model prediction executed via the dashboard or REST API (<code>POST /api/predict</code>) is recorded with environmental telemetry and dominant TreeSHAP risk factors.
-            </p>
-          </div>
-
-          <div style={{ background: '#0b1120', border: '1px solid rgba(56, 189, 248, 0.18)', borderRadius: '12px', overflowX: 'auto', boxShadow: '0 4px 16px rgba(0,0,0,0.3)' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem', textAlign: 'left' }}>
-              <thead>
-                <tr style={{ background: '#0f172a', borderBottom: '1px solid rgba(56, 189, 248, 0.2)', color: '#94a3b8' }}>
-                  <th style={{ padding: '12px 16px', fontWeight: 700 }}>Timestamp</th>
-                  <th style={{ padding: '12px 16px', fontWeight: 700 }}>Location</th>
-                  <th style={{ padding: '12px 16px', fontWeight: 700 }}>Rain (24h / 72h)</th>
-                  <th style={{ padding: '12px 16px', fontWeight: 700 }}>Elevation</th>
-                  <th style={{ padding: '12px 16px', fontWeight: 700 }}>Risk Probability</th>
-                  <th style={{ padding: '12px 16px', fontWeight: 700 }}>Alert Level</th>
-                  <th style={{ padding: '12px 16px', fontWeight: 700 }}>Primary TreeSHAP Driver</th>
-                </tr>
-              </thead>
-              <tbody>
-                {auditLogs.slice(0, 15).map(log => {
-                  const riskStyle = getSeverityStyle(log.risk_level);
-                  const probColor = log.probability >= 70 ? '#ef4444' : (log.probability >= 50 ? '#f59e0b' : '#10b981');
-                  return (
-                    <tr key={log.id} style={{ borderBottom: '1px solid #1e293b' }}>
-                      <td style={{ padding: '12px 16px', fontFamily: 'monospace', fontSize: '0.74rem', color: '#94a3b8' }}>
-                        {log.timestamp}
-                      </td>
-                      <td style={{ padding: '12px 16px', fontWeight: 600, color: '#f8fafc' }}>{log.location}</td>
-                      <td style={{ padding: '12px 16px', color: '#cbd5e1' }}>{log.rainfall_24h} mm / {log.rainfall_72h} mm</td>
-                      <td style={{ padding: '12px 16px', color: '#cbd5e1' }}>{log.elevation} m</td>
-                      <td style={{ padding: '12px 16px', fontWeight: 800, color: probColor }}>
-                        {log.probability}%
-                      </td>
-                      <td style={{ padding: '12px 16px' }}>
-                        <span style={{
-                          display: 'inline-block',
-                          padding: '3px 8px',
-                          borderRadius: '4px',
-                          fontSize: '0.72rem',
-                          fontWeight: 700,
-                          ...riskStyle
-                        }}>
-                          {log.risk_level}
-                        </span>
-                      </td>
-                      <td style={{ padding: '12px 16px', fontSize: '0.76rem', color: '#94a3b8' }}>
-                        <code style={{ background: '#0f172a', padding: '2px 6px', borderRadius: '4px', border: '1px solid #1e293b', color: '#38bdf8' }}>{log.primary_driver}</code>
                       </td>
                     </tr>
                   );

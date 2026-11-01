@@ -93,49 +93,55 @@
 ## 🏛️ System Architecture
 
 ```
-                               ┌─────────────────────────────────────────┐
-                               │       DATA SOURCES & TELEMETRY          │
-                               │  - MODIS Satellite Hydrology (1M rows)  │
-                               │  - Kaggle Municipal Vulnerability       │
-                               │  - Realtime Weather & Hydro Stations    │
-                               └────────────────────┬────────────────────┘
-                                                    │
-                                                    ▼
-                               ┌─────────────────────────────────────────┐
-                               │      DATA PREPARATION & SCHEMA          │
-                               │  - Zero-Null Audit & Outlier Clamping   │
-                               │  - 15 Hydrological & Satellite Features │
-                               │  - Leakage-Free Stratified 80/20 Split  │
-                               └────────────────────┬────────────────────┘
-                                                    │
-                      ┌─────────────────────────────┴─────────────────────────────┐
-                      ▼                                                           ▼
-       ┌─────────────────────────────┐                             ┌─────────────────────────────┐
-       │   PYTORCH FLOODNET DEEP NN  │                             │   NATIVE XGBOOST CLASSIFIER │
-       │  - Residual Skip Connections│                             │  - 349 Boosting Trees (hist)│
-       │  - BatchNorm1d + Dropout    │                             │  - Accuracy: 91.47%         │
-       │  - AdamW + CosineAnnealing  │                             │  - Recall: 92.75%           │
-       │  - Checkpoint: flood_net.pt │                             │  - ROC-AUC: 0.9676          │
-       └──────────────┬──────────────┘                             │  - Serialized: model.json   │
-                      │                                            └──────────────┬──────────────┘
-                      └─────────────────────────────┬─────────────────────────────┘
-                                                    ▼
-                               ┌─────────────────────────────────────────┐
-                               │           FASTAPI REST BACKEND          │
-                               │  - POST /api/predict (Inference + SHAP) │
-                               │  - GET  /api/model/performance          │
-                               │  - GET  /api/gis/mira-bhayandar         │
-                               │  - GET  /api/stations                   │
-                               └────────────────────┬────────────────────┘
-                                                    │
-                                                    ▼
-                               ┌─────────────────────────────────────────┐
-                               │          REACT + VITE FRONTEND          │
-                               │  - Donut Gauge & Live Telemetry         │
-                               │  - PredictRisk & AI Explainer Views     │
-                               │  - Evacuation Planner & Shelter Routes  │
-                               │  - Model Performance Diagnostics        │
-                               └─────────────────────────────────────────┘
+  ┌────────────────────────────────────────────────────────────────────────────────────────┐
+  │                           1. DATA SOURCES & TELEMETRY INGESTION                        │
+  │  • MODIS Satellite Hydrology (1M+ rows)    • Open-Meteo High-Resolution Weather API     │
+  │  • Copernicus DEM 30m Elevation Topography • Municipal Drainage & Vulnerability Atlas   │
+  └───────────────────────────────────────────┬────────────────────────────────────────────┘
+                                              │
+                                              ▼
+  ┌────────────────────────────────────────────────────────────────────────────────────────┐
+  │                         2. HYDRODYNAMIC FEATURE ENGINEERING (15D)                      │
+  │  • Multi-spectral: NDWI, NDVI, Contrast    • Terrain: Elevation, Slope, TWI (Wetness)   │
+  │  • Precipitation: 24h/72h Rain, Ratio      • Infrastructure: Drainage Density, Ponding  │
+  │  • Data Integrity: Zero-Null Audit, IQR Outlier Clamping, Leakage-Free 80/20 Stratified │
+  └───────────────────────────────────────────┬────────────────────────────────────────────┘
+                                              │
+                   ┌──────────────────────────┴──────────────────────────┐
+                   ▼                                                     ▼
+  ┌─────────────────────────────────┐                 ┌─────────────────────────────────┐
+  │    NATIVE XGBOOST CLASSIFIER    │                 │   NATIVE RANDOM FOREST (JSON)   │
+  │  • 349 Boosting Trees (hist)    │                 │  • 100 Decision Trees (max_d=14)│
+  │  • Accuracy: 91.47% | Rec: 92.7%│                 │  • Accuracy: 90.17% | Rec: 93.6%│
+  │  • ROC-AUC: 0.9676              │                 │  • ROC-AUC: 0.9610 | OOB: 0.9029│
+  │  • Format: flood_model.json     │                 │  • Format: random_forest.json   │
+  └────────────────┬────────────────┘                 └────────────────┬────────────────┘
+                   │                                                     │
+                   └──────────────────────────┬──────────────────────────┘
+                                              │ + PyTorch FloodNet Deep Residual NN (10%)
+                                              ▼
+  ┌────────────────────────────────────────────────────────────────────────────────────────┐
+  │                 3. SUPER-STACK ENSEMBLE ENGINE & TREESHAP EXPLAINABILITY               │
+  │  • Soft-Voting Meta-Ensemble: 0.50 RF + 0.40 XGB + 0.10 NN (91.24% Ensemble Accuracy)  │
+  │  • Real-Time TreeSHAP Feature Attribution: Per-feature directional hazard forces       │
+  └───────────────────────────────────────────┬────────────────────────────────────────────┘
+                                              │
+                                              ▼
+  ┌────────────────────────────────────────────────────────────────────────────────────────┐
+  │                            4. FASTAPI REST MICROSERVICES BACKEND                       │
+  │  • POST /api/predict (Real-time inference) • POST /api/alerts/scoring (50% Threshold)  │
+  │  • GET  /api/reports/weekly (7-Day Ledger) • POST /api/reports/rainfall-impact (Sens)  │
+  │  • GET  /api/stations (Live Telemetry)     • GET  /api/gis/mira-bhayandar (GIS Wards)  │
+  └───────────────────────────────────────────┬────────────────────────────────────────────┘
+                                              │
+                   ┌──────────────────────────┴──────────────────────────┐
+                   ▼                                                     ▼
+  ┌─────────────────────────────────┐                 ┌─────────────────────────────────┐
+  │      REACT 18 + VITE FRONTEND   │                 │     REACT NATIVE MOBILE APP     │
+  │  • Donut Gauge & Live Telemetry │                 │  • Push Alerts & Offline SOPs   │
+  │  • 3D Risk Globe & Evacuation   │                 │  • GPS Live Station Sync        │
+  │  • Model Diagnostics Dashboard  │                 │  • Go-Bag & Survival Checklists │
+  └─────────────────────────────────┘                 └─────────────────────────────────┘
 ```
 
 ---
