@@ -1,7 +1,7 @@
-# 🌊 DisasterRadar.ai (FloodRisk AI)
+# 🌊 AI-Powered Multi-Hazard Disaster Intelligence Platform
 
-> **AI-Powered Flood Intelligence, Hydrodynamic Modeling & Early Warning Platform**  
-> An end-to-end multi-tier platform integrating satellite hydrology (MODIS), deep learning (PyTorch FloodNet), native gradient boosted decision trees (XGBoost), geospatial GIS mapping, and real-time telemetry to predict flood inundation risks and orchestrate evacuation intelligence.
+> **AI-Powered Flood Prediction, Cyclone Tracking, Geospatial Risk Assessment & Early Warning Platform**  
+> An end-to-end multi-hazard intelligence platform integrating satellite hydrology (MODIS), deep learning (PyTorch FloodNet), gradient-boosted decision trees (XGBoost), meteorological data, and geospatial GIS analytics to monitor flood and cyclone events, assess hazard exposure, identify vulnerable regions, and support early warning and evacuation planning through real-time disaster intelligence.
 
 [![GitHub Repo](https://img.shields.io/badge/GitHub-Shashank101--aiml%2FDisasterRadar.ai-blue?logo=github)](https://github.com/Shashank101-aiml/DisasterRadar.ai)
 [![Python](https://img.shields.io/badge/Python-3.10%20%7C%203.11%20%7C%203.12-blue?logo=python)](https://www.python.org/)
