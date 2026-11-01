@@ -265,7 +265,7 @@ Complete, executed notebooks with pre-rendered interactive plots and tables:
 
 ### 2. Clone the Repository & Set Up Virtual Environment
 ```bash
-git clone https://github.com/Riyan-ai-code/DisasterRadar.ai.git
+git clone https://github.com/Shashank101-aiml/DisasterRadar.ai.git
 cd DisasterRadar.ai
 
 # Create virtual environment
@@ -418,7 +418,7 @@ git status
 git push origin main
 ```
 
-> **Remote Repository:** [https://github.com/Riyan-ai-code/DisasterRadar.ai.git](https://github.com/Riyan-ai-code/DisasterRadar.ai.git)
+> **Remote Repository:** (https://github.com/Shashank101-aiml/DisasterRadar.ai.git)
 
 ---
 
