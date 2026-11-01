@@ -418,7 +418,7 @@ git status
 git push origin main
 ```
 
-> **Remote Repository:** (https://github.com/Shashank101-aiml/DisasterRadar.ai.git)
+> **Remote Repository:** https://github.com/Shashank101-aiml/DisasterRadar.ai.git
 
 ---
 
