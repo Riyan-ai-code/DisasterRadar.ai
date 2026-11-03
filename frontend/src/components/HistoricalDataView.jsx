@@ -446,16 +446,15 @@ export default function HistoricalDataView({
           style={{
             background: 'none',
             border: 'none',
-            borderBottom: subTab === 'events' ? '3px solid #0284c7' : '3px solid transparent',
-            color: subTab === 'events' ? '#38bdf8' : '#94a3b8',
+            borderBottom: '3px solid #0284c7',
+            color: '#38bdf8',
             fontWeight: 700,
             fontSize: '0.92rem',
             padding: '10px 16px',
-            cursor: 'pointer',
+            cursor: 'default',
             display: 'flex',
             alignItems: 'center',
-            gap: '6px',
-            transition: 'color 0.15s ease'
+            gap: '6px'
           }}
         >
           📜 Major Inundation Disasters ({locationEvents.length})
@@ -638,7 +637,6 @@ export default function HistoricalDataView({
           </div>
         </div>
       )}
-
       {/* SUB-TAB 2: VERIFIED NIO CYCLONE ARCHIVE (IMD / IBTrACS) */}
       {subTab === 'cyclones' && (
         <div>

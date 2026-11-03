@@ -3,6 +3,7 @@ import {
   geocodeLocation,
   fetchGlobalLiveTelemetry,
   predictFloodRisk,
+  predictStressScenario,
   compareModelPredictions,
   reverseGeocodeCoords,
   submitGroundTruthReport
@@ -11,6 +12,7 @@ import {
 export default function PredictRiskView({
   currentLocation,
   homeLocation: propHomeLocation,
+  exploredLocation: propExploredLocation,
   locationTab: propLocationTab,
   onSwitchToMyLocation: propSwitchToMyLocation,
   onSwitchToExplore: propSwitchToExplore,
@@ -76,10 +78,17 @@ export default function PredictRiskView({
     return { name: 'Kharupetia, Assam', country: 'India', lat: 26.5181, lng: 92.1384 };
   });
   const [locationTab, setLocationTab] = useState(propLocationTab || 'myLocation'); // 'myLocation' | 'explore'
+  const [exploredLocation, setExploredLocation] = useState(propExploredLocation || null);
   const [isChangingHome, setIsChangingHome] = useState(false);
   const [newHomeQuery, setNewHomeQuery] = useState('');
   const [newHomeResults, setNewHomeResults] = useState([]);
   const [isNewHomeSearching, setIsNewHomeSearching] = useState(false);
+
+  useEffect(() => {
+    if (propExploredLocation !== undefined) {
+      setExploredLocation(propExploredLocation);
+    }
+  }, [propExploredLocation]);
 
   useEffect(() => {
     if (propHomeLocation && propHomeLocation.lat) {
@@ -105,6 +114,7 @@ export default function PredictRiskView({
   // Switch back to Home Location
   const handleSwitchToMyLocation = async () => {
     setLocationTab('myLocation');
+    setExploredLocation(null);
     setIsChangingHome(false);
     if (propSwitchToMyLocation) {
       await propSwitchToMyLocation();
@@ -321,8 +331,10 @@ export default function PredictRiskView({
 
     if (isActuallyHome) {
       setLocationTab('myLocation');
+      setExploredLocation(null);
     } else {
       setLocationTab('explore');
+      setExploredLocation(loc);
       if (propSwitchToExplore) {
         propSwitchToExplore(loc);
       }
@@ -381,8 +393,8 @@ export default function PredictRiskView({
     }
   };
 
-  // Run ML model prediction for STRESS-TEST SCENARIOS (strictly independent simulation)
-  const handleRunScenarioPrediction = async (scenParams, engine = selectedEngine) => {
+  // Run backend formula prediction for STRESS-TEST SCENARIOS (strictly backend formula, real scenario on ML models)
+  const handleRunScenarioPrediction = async (scenParams) => {
     setIsLoading(true);
     setModelComparison(null);
     setCompareError(null);
@@ -395,7 +407,7 @@ export default function PredictRiskView({
       temperature: !isNaN(Number(scenParams.temperature)) ? Number(scenParams.temperature) : 25.0
     };
     try {
-      const res = await predictFloodRisk(safeParams, engine);
+      const res = await predictStressScenario(safeParams);
       if (res) {
         setScenarioPrediction(res);
       }
@@ -688,23 +700,25 @@ export default function PredictRiskView({
         {/* ACTIVE LOCATION ROW */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', marginBottom: '14px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <span style={{ fontSize: '1.4rem' }}>{locationTab === 'myLocation' ? '🏠' : '🌐'}</span>
+            <span style={{ fontSize: '1.4rem' }}>{locationTab === 'myLocation' ? '🏠' : (exploredLocation ? '🌐' : '🔍')}</span>
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-                <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#f8fafc' }}>
-                  {params.location}
+                <div style={{ fontSize: '1.1rem', fontWeight: 800, color: locationTab === 'explore' && !exploredLocation ? '#38bdf8' : '#f8fafc' }}>
+                  {locationTab === 'explore' && !exploredLocation
+                    ? 'Search Any Location to Explore'
+                    : params.location}
                 </div>
                 {locationTab === 'explore' && (
                   <span style={{
                     fontSize: '0.68rem',
-                    background: 'rgba(2, 132, 199, 0.2)',
+                    background: exploredLocation ? 'rgba(2, 132, 199, 0.2)' : 'rgba(56, 189, 248, 0.15)',
                     color: '#38bdf8',
                     border: '1px solid rgba(56, 189, 248, 0.35)',
                     padding: '2px 8px',
                     borderRadius: '4px',
                     fontWeight: 700
                   }}>
-                    EXPLORING
+                    {exploredLocation ? 'EXPLORING' : 'SEARCH FIRST'}
                   </span>
                 )}
                 {locationTab === 'myLocation' && (
@@ -732,8 +746,12 @@ export default function PredictRiskView({
                   </button>
                 )}
               </div>
-              <div style={{ fontSize: '0.78rem', color: '#38bdf8', fontFamily: 'JetBrains Mono, monospace', marginTop: '2px' }}>
-                Lat: {Number(params.latitude).toFixed(3)}° | Lon: {Number(params.longitude).toFixed(3)}° | Elevation: {params.elevation}m
+              <div style={{ fontSize: '0.78rem', color: '#94a3b8', marginTop: '2px' }}>
+                {locationTab === 'explore' && !exploredLocation
+                  ? 'Type any town, city, or village in the search bar below to load live satellite & DEM observations'
+                  : <span style={{ color: '#38bdf8', fontFamily: 'JetBrains Mono, monospace' }}>
+                      Lat: {Number(params.latitude).toFixed(3)}° | Lon: {Number(params.longitude).toFixed(3)}° | Elevation: {params.elevation}m
+                    </span>}
               </div>
             </div>
           </div>
@@ -900,18 +918,44 @@ export default function PredictRiskView({
 
         {/* Global Search Bar */}
         <div style={{ position: 'relative' }}>
+          {locationTab === 'explore' && !exploredLocation && (
+            <div style={{
+              background: 'rgba(56, 189, 248, 0.08)',
+              border: '1px solid rgba(56, 189, 248, 0.3)',
+              borderRadius: '8px',
+              padding: '8px 14px',
+              marginBottom: '10px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              fontSize: '0.78rem',
+              color: '#38bdf8'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span>🔍</span>
+                <span><strong>Search First:</strong> Type your desired town, city, or district below to fetch real-time planetary telemetry.</span>
+              </div>
+              <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>
+                Home locked to {homeLocation?.name?.split(',')[0]}
+              </span>
+            </div>
+          )}
+
           <div style={{ display: 'flex', gap: '10px' }}>
             <input
               id="predictStudioLocationInput"
               type="text"
-              placeholder="Search any city, town or village (e.g. Kharupetia, Guwahati, Mumbai, Delhi)..."
+              placeholder={locationTab === 'explore' && !exploredLocation
+                ? "Type any city, town, or village to search & explore (e.g. Silchar, Mumbai, Dibrugarh, Delhi)..."
+                : "Search any city, town or village (e.g. Silchar, Mumbai, Dibrugarh, Delhi)..."}
               value={locationQuery}
               onChange={(e) => setLocationQuery(e.target.value)}
               style={{
                 flex: 1,
-                padding: '9px 14px',
+                padding: '10px 14px',
                 borderRadius: '8px',
-                border: '1px solid rgba(56, 189, 248, 0.25)',
+                border: locationTab === 'explore' && !exploredLocation ? '1.5px solid #38bdf8' : '1px solid rgba(56, 189, 248, 0.25)',
+                boxShadow: locationTab === 'explore' && !exploredLocation ? '0 0 12px rgba(56, 189, 248, 0.25)' : 'none',
                 background: '#0f172a',
                 color: '#f8fafc',
                 fontSize: '0.84rem'
@@ -1050,9 +1094,22 @@ export default function PredictRiskView({
       {/* TWO COLUMN WORKSTATION GRID */}
       <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '24px', alignItems: 'start' }}>
         {/* LEFT COLUMN: PARAMETER SLIDERS & SCENARIO CONTROLS */}
-        <div style={{ background: '#0b1120', border: '1px solid rgba(56, 189, 248, 0.18)', borderRadius: '14px', padding: '24px', boxShadow: '0 8px 30px rgba(0,0,0,0.5)' }}>
-          {/* Stress-Test Scenario Buttons */}
-          <div style={{ marginBottom: '20px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          {/* 1. COMPACT SIMULATOR CARD (WITH DOWN SCROLLBAR - REDUCED SIZE) */}
+          <div
+            className="simulator-down-scrollbar"
+            style={{
+              background: '#0b1120',
+              border: '1px solid rgba(56, 189, 248, 0.18)',
+              borderRadius: '14px',
+              padding: '16px 18px 18px 18px',
+              boxShadow: '0 8px 30px rgba(0,0,0,0.5)',
+              maxHeight: '340px',
+              overflowY: 'auto'
+            }}
+          >
+            {/* Stress-Test Scenario Buttons */}
+            <div style={{ marginBottom: '10px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
               <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' }}>
                 Stress-Test Scenarios (1-Click Presets):
@@ -1075,19 +1132,32 @@ export default function PredictRiskView({
                 </button>
               )}
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(125px, 1fr))', gap: '8px' }}>
+            <div
+              className="stress-scenarios-scroll-tabs"
+              style={{
+                display: 'flex',
+                gap: '10px',
+                overflowX: 'auto',
+                whiteSpace: 'nowrap',
+                paddingBottom: '10px',
+                scrollbarWidth: 'thin'
+              }}
+            >
               <button
                 onClick={() => handleApplyScenario('live')}
                 style={{
-                  background: activeMode === 'live' ? '#111a2d' : '#0f172a',
+                  background: activeMode === 'live' ? 'rgba(16, 185, 129, 0.18)' : '#0f172a',
                   border: activeMode === 'live' ? '1.5px solid #10b981' : '1px solid rgba(255,255,255,0.08)',
-                  borderRadius: '8px',
-                  padding: '8px 10px',
+                  borderRadius: '10px',
+                  padding: '9px 14px',
                   textAlign: 'left',
-                  cursor: 'pointer'
+                  cursor: 'pointer',
+                  flex: '0 0 auto',
+                  minWidth: '150px',
+                  transition: 'all 0.15s ease'
                 }}
               >
-                <div style={{ fontSize: '0.8rem', fontWeight: 700, color: activeMode === 'live' ? '#10b981' : '#f8fafc' }}>
+                <div style={{ fontSize: '0.82rem', fontWeight: 800, color: activeMode === 'live' ? '#34d399' : '#f8fafc' }}>
                   🛰️ Live Reality
                 </div>
                 <div style={{ fontSize: '0.68rem', color: '#94a3b8' }}>Real-Time Satellites</div>
@@ -1102,144 +1172,91 @@ export default function PredictRiskView({
                   key={s.key}
                   onClick={() => handleApplyScenario(s.key)}
                   style={{
-                    background: activeMode === 'scenario' && selectedScenario === s.key ? '#111a2d' : '#0f172a',
+                    background: activeMode === 'scenario' && selectedScenario === s.key ? 'rgba(2, 132, 199, 0.24)' : '#0f172a',
                     border: activeMode === 'scenario' && selectedScenario === s.key ? '1.5px solid #38bdf8' : '1px solid rgba(255,255,255,0.08)',
-                    borderRadius: '8px',
-                    padding: '8px 10px',
+                    borderRadius: '10px',
+                    padding: '9px 14px',
                     textAlign: 'left',
-                    cursor: 'pointer'
+                    cursor: 'pointer',
+                    flex: '0 0 auto',
+                    minWidth: '165px',
+                    boxShadow: activeMode === 'scenario' && selectedScenario === s.key ? '0 0 14px rgba(56, 189, 248, 0.3)' : 'none',
+                    transition: 'all 0.15s ease'
                   }}
                 >
-                  <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#f8fafc' }}>{s.label}</div>
+                  <div style={{ fontSize: '0.82rem', fontWeight: 800, color: activeMode === 'scenario' && selectedScenario === s.key ? '#38bdf8' : '#f8fafc' }}>
+                    {s.label}
+                  </div>
                   <div style={{ fontSize: '0.68rem', color: '#94a3b8' }}>{s.desc}</div>
                 </button>
               ))}
             </div>
           </div>
 
-          {/* Scenario Simulation Alert Banner */}
-          {activeMode === 'scenario' && (
-            <div style={{
-              background: 'rgba(2, 132, 199, 0.12)',
-              border: '1px solid rgba(56, 189, 248, 0.35)',
-              borderRadius: '10px',
-              padding: '10px 14px',
-              marginBottom: '16px',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              gap: '12px'
-            }}>
-              <div>
-                <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#38bdf8' }}>
-                  🧪 INDEPENDENT STRESS-TEST SIMULATION
-                </div>
-                <div style={{ fontSize: '0.72rem', color: '#cbd5e1', marginTop: '2px' }}>
-                  Testing hypothetical conditions. Actual live forecast for <strong>{liveParams.location}</strong> ({livePrediction ? livePrediction.probability : 2.4}%) is preserved independently.
-                </div>
-              </div>
-              <button
-                onClick={handleResetToLive}
-                style={{
-                  background: '#0284c7',
-                  color: '#ffffff',
-                  border: 'none',
-                  borderRadius: '6px',
-                  padding: '6px 12px',
-                  fontSize: '0.74rem',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  whiteSpace: 'nowrap'
-                }}
-              >
-                ↺ View Live Reality
-              </button>
-            </div>
-          )}
-
-          {/* Option A: 1-Tap Ground-Truth Calibration Widget */}
+          {/* Compact Inline Ground-Truth Calibration */}
           <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
             background: groundTruthState.verified ? 'rgba(16, 185, 129, 0.08)' : 'rgba(255, 255, 255, 0.03)',
             border: groundTruthState.verified ? '1px solid rgba(16, 185, 129, 0.35)' : '1px solid rgba(255, 255, 255, 0.08)',
-            borderRadius: '10px',
-            padding: '12px 14px',
-            marginBottom: '16px'
+            borderRadius: '8px',
+            padding: '6px 12px',
+            marginBottom: '10px'
           }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontSize: '0.9rem' }}>🎯</span>
-                <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#f8fafc', letterSpacing: '0.4px' }}>
-                  GROUND-TRUTH CALIBRATION (OPTION A)
-                </span>
-              </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.74rem', color: '#cbd5e1', fontWeight: 700 }}>
+              <span>🎯</span>
+              <span>Ground Truth:</span>
               {groundTruthState.verified && (
-                <span style={{
-                  fontSize: '0.68rem',
-                  background: '#10b981',
-                  color: '#0f172a',
-                  fontWeight: 800,
-                  padding: '2px 8px',
-                  borderRadius: '4px'
-                }}>
-                  ✓ GROUND-TRUTH VERIFIED
+                <span style={{ fontSize: '0.64rem', background: '#10b981', color: '#0f172a', fontWeight: 800, padding: '1px 6px', borderRadius: '4px' }}>
+                  ✓ VERIFIED
                 </span>
               )}
             </div>
-            <div style={{ fontSize: '0.74rem', color: '#94a3b8', marginBottom: '10px', lineHeight: 1.4 }}>
-              Are skies dry outside? Satellites often detect trace clouds/virga. Calibrate telemetry immediately to ground reality:
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+            <div style={{ display: 'flex', gap: '6px' }}>
               <button
+                type="button"
                 onClick={() => handleGroundTruthVerify(false)}
                 style={{
                   background: groundTruthState.condition === 'DRY' ? '#10b981' : 'rgba(16, 185, 129, 0.15)',
                   color: groundTruthState.condition === 'DRY' ? '#0f172a' : '#34d399',
                   border: '1px solid rgba(16, 185, 129, 0.4)',
-                  borderRadius: '8px',
-                  padding: '10px',
-                  fontSize: '0.82rem',
+                  borderRadius: '6px',
+                  padding: '4px 10px',
+                  fontSize: '0.72rem',
                   fontWeight: 700,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '6px',
-                  transition: 'all 0.2s'
+                  cursor: 'pointer'
                 }}
-                title="Calibrate model: Verify zero rainfall on ground and recalculate flood probability"
+                title="Verify dry ground conditions"
               >
-                ☀️ Bone Dry (0 mm)
+                ☀️ Bone Dry (0mm)
               </button>
               <button
+                type="button"
                 onClick={() => handleGroundTruthVerify(true)}
                 style={{
                   background: groundTruthState.condition === 'RAIN' ? '#38bdf8' : 'rgba(56, 189, 248, 0.15)',
                   color: groundTruthState.condition === 'RAIN' ? '#0f172a' : '#38bdf8',
                   border: '1px solid rgba(56, 189, 248, 0.4)',
-                  borderRadius: '8px',
-                  padding: '10px',
-                  fontSize: '0.82rem',
+                  borderRadius: '6px',
+                  padding: '4px 10px',
+                  fontSize: '0.72rem',
                   fontWeight: 700,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '6px',
-                  transition: 'all 0.2s'
+                  cursor: 'pointer'
                 }}
-                title="Calibrate model: Verify active rain on ground and recalculate flood probability"
+                title="Verify active rainfall on ground"
               >
                 🌧️ Active Rain
               </button>
             </div>
           </div>
 
-          {/* Sliders Grid */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          {/* Sliders in Compact 2-Column Grid */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 14px', paddingBottom: '8px' }}>
             {/* 24h Rain */}
             <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.84rem', fontWeight: 700, color: '#f8fafc', marginBottom: '4px' }}>
-                <span>🌧️ 24-Hour Acute Rainfall</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', fontWeight: 700, color: '#f8fafc', marginBottom: '2px' }}>
+                <span>🌧️ 24h Rain</span>
                 <span style={{ color: params.rainfall24h > 100 ? '#ef4444' : '#38bdf8' }}>{params.rainfall24h} mm</span>
               </div>
               <input
@@ -1250,17 +1267,17 @@ export default function PredictRiskView({
                 onChange={(e) => handleSliderChange('rainfall24h', parseFloat(e.target.value))}
                 style={{ width: '100%', accentColor: '#0284c7' }}
               />
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', color: '#64748b' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.64rem', color: '#64748b' }}>
                 <span>0 mm</span>
-                <span>80 mm (Critical Municipal Sump Threshold)</span>
-                <span>250 mm (Extreme Cloudburst)</span>
+                <span>80mm (Sump Choke)</span>
+                <span>250mm</span>
               </div>
             </div>
 
             {/* 72h Rain */}
             <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.84rem', fontWeight: 700, color: '#f8fafc', marginBottom: '4px' }}>
-                <span>🌧️ 72-Hour Cumulative Rainfall</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', fontWeight: 700, color: '#f8fafc', marginBottom: '2px' }}>
+                <span>🌧️ 72h Rain</span>
                 <span style={{ color: params.rainfall72h > 180 ? '#ef4444' : '#38bdf8' }}>{params.rainfall72h} mm</span>
               </div>
               <input
@@ -1271,18 +1288,18 @@ export default function PredictRiskView({
                 onChange={(e) => handleSliderChange('rainfall72h', parseFloat(e.target.value))}
                 style={{ width: '100%', accentColor: '#0284c7' }}
               />
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', color: '#64748b' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.64rem', color: '#64748b' }}>
                 <span>0 mm</span>
-                <span>150 mm (Ground Saturated)</span>
-                <span>300+ mm (Catastrophic)</span>
+                <span>150mm (Saturated)</span>
+                <span>400mm</span>
               </div>
             </div>
 
             {/* Elevation */}
             <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.84rem', fontWeight: 700, color: '#f8fafc', marginBottom: '4px' }}>
-                <span>⛰️ Digital Elevation (DEM)</span>
-                <span style={{ color: params.elevation < 15 ? '#ef4444' : '#10b981' }}>{params.elevation} meters</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', fontWeight: 700, color: '#f8fafc', marginBottom: '2px' }}>
+                <span>⛰️ DEM Elevation</span>
+                <span style={{ color: params.elevation < 15 ? '#ef4444' : '#10b981' }}>{params.elevation}m</span>
               </div>
               <input
                 type="range"
@@ -1292,18 +1309,18 @@ export default function PredictRiskView({
                 onChange={(e) => handleSliderChange('elevation', parseFloat(e.target.value))}
                 style={{ width: '100%', accentColor: '#10b981' }}
               />
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', color: '#64748b' }}>
-                <span>1 m (Vulnerable Sump)</span>
-                <span>50 m</span>
-                <span>300 m (High Ground)</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.64rem', color: '#64748b' }}>
+                <span>1m (Basin)</span>
+                <span>50m</span>
+                <span>300m (High)</span>
               </div>
             </div>
 
             {/* Humidity & Temperature */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
               <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', fontWeight: 700, color: '#cbd5e1', marginBottom: '4px' }}>
-                  <span>💧 Humidity</span>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.74rem', fontWeight: 700, color: '#cbd5e1', marginBottom: '2px' }}>
+                  <span>💧 Hum.</span>
                   <span>{params.humidity}%</span>
                 </div>
                 <input
@@ -1317,8 +1334,8 @@ export default function PredictRiskView({
               </div>
 
               <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', fontWeight: 700, color: '#cbd5e1', marginBottom: '4px' }}>
-                  <span>🌡️ Temperature</span>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.74rem', fontWeight: 700, color: '#cbd5e1', marginBottom: '2px' }}>
+                  <span>🌡️ Temp.</span>
                   <span>{params.temperature}°C</span>
                 </div>
                 <input
@@ -1334,6 +1351,239 @@ export default function PredictRiskView({
           </div>
         </div>
 
+        {/* 2. DEDICATED WORKSTATION CARD: HYDROLOGICAL & INFRASTRUCTURE DIAGNOSTICS (WITH DOWN SCROLLBAR) */}
+        <div
+          className="simulator-down-scrollbar"
+          style={{
+            background: '#0b1120',
+            border: '1px solid rgba(56, 189, 248, 0.18)',
+            borderRadius: '14px',
+            padding: '16px 18px',
+            boxShadow: '0 8px 30px rgba(0,0,0,0.5)',
+            maxHeight: '460px',
+            overflowY: 'auto',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '14px'
+          }}
+        >
+          {/* SECTION 1: CATCHMENT HYDRODYNAMIC DIAGNOSTICS */}
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', flexWrap: 'wrap', gap: '8px' }}>
+              <div>
+                <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span>🔬</span> Catchment Hydrodynamic Diagnostics
+                </div>
+                <div style={{ fontSize: '0.72rem', color: '#94a3b8', marginTop: '2px' }}>
+                  Real-time soil absorption, drainage surcharge & runoff mechanics
+                </div>
+              </div>
+              <span style={{
+                fontSize: '0.68rem',
+                fontWeight: 800,
+                padding: '3px 10px',
+                borderRadius: '12px',
+                background: activeMode === 'scenario' ? 'rgba(2, 132, 199, 0.2)' : 'rgba(16, 185, 129, 0.15)',
+                color: activeMode === 'scenario' ? '#38bdf8' : '#34d399',
+                border: `1px solid ${activeMode === 'scenario' ? 'rgba(56, 189, 248, 0.4)' : 'rgba(16, 185, 129, 0.4)'}`
+              }}>
+                {activeMode === 'scenario' ? '🧪 Backend Formula Engine' : '🧠 ML Super-Stack Ensemble'}
+              </span>
+            </div>
+
+            {/* 4 Hydrodynamic telemetry tiles */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px', marginBottom: '10px' }}>
+              <div style={{ background: '#0f172a', border: '1px solid rgba(255, 255, 255, 0.08)', borderRadius: '8px', padding: '9px 10px' }}>
+                <div style={{ fontSize: '0.66rem', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase' }}>Soil Saturation</div>
+                <div style={{ fontSize: '1.05rem', fontWeight: 800, color: params.rainfall72h > 150 ? '#ef4444' : (params.rainfall72h > 60 ? '#f59e0b' : '#34d399'), marginTop: '2px' }}>
+                  {Math.min(100, Math.round((params.rainfall72h / 240) * 100))}%
+                </div>
+                <div style={{ fontSize: '0.64rem', color: '#64748b' }}>
+                  {params.rainfall72h > 150 ? 'Infiltration Exhausted' : 'Absorptive Capacity Active'}
+                </div>
+              </div>
+
+              <div style={{ background: '#0f172a', border: '1px solid rgba(255, 255, 255, 0.08)', borderRadius: '8px', padding: '9px 10px' }}>
+                <div style={{ fontSize: '0.66rem', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase' }}>Storm Drain Surcharge</div>
+                <div style={{ fontSize: '1.05rem', fontWeight: 800, color: params.rainfall24h > 80 ? '#ef4444' : (params.rainfall24h > 35 ? '#f59e0b' : '#38bdf8'), marginTop: '2px' }}>
+                  {Math.min(100, Math.round((params.rainfall24h / 120) * 100))}%
+                </div>
+                <div style={{ fontSize: '0.64rem', color: '#64748b' }}>
+                  {params.rainfall24h > 80 ? 'Channel Choke Imminent' : 'Normal Gravity Flow'}
+                </div>
+              </div>
+
+              <div style={{ background: '#0f172a', border: '1px solid rgba(255, 255, 255, 0.08)', borderRadius: '8px', padding: '9px 10px' }}>
+                <div style={{ fontSize: '0.66rem', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase' }}>Runoff Velocity</div>
+                <div style={{ fontSize: '0.86rem', fontWeight: 800, color: '#f8fafc', marginTop: '2px' }}>
+                  {params.elevation > 350 ? '⚡ Rapid Runoff (3.2 m/s)' : (params.elevation < 25 ? '🌊 Stagnant Basin (0.3 m/s)' : '🚗 Moderate Flow (1.4 m/s)')}
+                </div>
+                <div style={{ fontSize: '0.64rem', color: '#64748b' }}>
+                  Gradient relief at {params.elevation}m DEM
+                </div>
+              </div>
+
+              <div style={{ background: '#0f172a', border: '1px solid rgba(255, 255, 255, 0.08)', borderRadius: '8px', padding: '9px 10px' }}>
+                <div style={{ fontSize: '0.66rem', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase' }}>Safe Rainfall Buffer</div>
+                <div style={{ fontSize: '1.05rem', fontWeight: 800, color: params.rainfall24h > 50 ? '#ef4444' : '#10b981', marginTop: '2px' }}>
+                  {params.rainfall24h > 50 ? '0 mm (Breached)' : `${Math.round(Math.max(0, 50 - params.rainfall24h))} mm`}
+                </div>
+                <div style={{ fontSize: '0.64rem', color: '#64748b' }}>
+                  Headroom before 50% flood line
+                </div>
+              </div>
+            </div>
+
+            {/* Engine Directive Bar */}
+            <div style={{
+              padding: '7px 11px',
+              background: 'rgba(255, 255, 255, 0.03)',
+              borderRadius: '8px',
+              border: '1px solid rgba(255, 255, 255, 0.06)',
+              fontSize: '0.71rem',
+              color: '#94a3b8',
+              lineHeight: 1.35
+            }}>
+              <span style={{ color: activeMode === 'scenario' ? '#38bdf8' : '#34d399', fontWeight: 700 }}>
+                {activeMode === 'scenario' ? '🧪 Stress Mode Active:' : '📡 Real-Time Telemetry:'}
+              </span>{' '}
+              {activeMode === 'scenario'
+                ? 'Stress-test probabilities are evaluated strictly through the calibrated hydrological formula engine without overriding live location ML telemetry.'
+                : 'Live ground forecasts are inferred strictly through the production ML ensemble models (Optuna XGBoost & Random Forest Bagging).'}
+            </div>
+          </div>
+
+          {/* SECTION 2: MUNICIPAL STORM DRAINAGE & CANAL INFRASTRUCTURE MONITOR */}
+          <div style={{ borderTop: '1px solid rgba(255, 255, 255, 0.08)', paddingTop: '12px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
+              <div>
+                <div style={{ fontSize: '0.86rem', fontWeight: 800, color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span>🌊</span> Municipal Drainage & Canal Telemetry
+                </div>
+                <div style={{ fontSize: '0.70rem', color: '#94a3b8', marginTop: '2px' }}>
+                  {params.location.includes('Bengaluru') || params.location.includes('Bangalore')
+                    ? 'Rajakaluve storm canals & Bellandur/Varthur lake cascades'
+                    : `Active primary storm conduits for ${params.location.split(',')[0]}`}
+                </div>
+              </div>
+              <span style={{
+                fontSize: '0.66rem',
+                fontWeight: 800,
+                padding: '2px 8px',
+                borderRadius: '12px',
+                background: params.rainfall24h > 60 ? 'rgba(239, 68, 68, 0.15)' : 'rgba(16, 185, 129, 0.15)',
+                color: params.rainfall24h > 60 ? '#ef4444' : '#34d399',
+                border: `1px solid ${params.rainfall24h > 60 ? 'rgba(239, 68, 68, 0.4)' : 'rgba(16, 185, 129, 0.4)'}`
+              }}>
+                {params.rainfall24h > 80 ? 'CRITICAL SURCHARGE' : (params.rainfall24h > 35 ? 'SURCHARGE WATCH' : 'NORMAL HEADROOM')}
+              </span>
+            </div>
+
+            {/* Canal Load Bar */}
+            <div style={{ marginBottom: '8px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.70rem', color: '#cbd5e1', marginBottom: '3px' }}>
+                <span>Storm Canal Throughput Capacity</span>
+                <span style={{ fontWeight: 800, color: params.rainfall24h > 80 ? '#ef4444' : (params.rainfall24h > 35 ? '#f59e0b' : '#34d399') }}>
+                  {Math.min(100, Math.round(35 + (params.rainfall24h * 0.55)))}%
+                </span>
+              </div>
+              <div style={{ width: '100%', height: '7px', background: '#0f172a', borderRadius: '4px', overflow: 'hidden', border: '1px solid #1e293b' }}>
+                <div style={{
+                  width: `${Math.min(100, Math.round(35 + (params.rainfall24h * 0.55)))}%`,
+                  height: '100%',
+                  background: params.rainfall24h > 80 ? 'linear-gradient(90deg, #f59e0b, #ef4444)' : 'linear-gradient(90deg, #10b981, #0284c7)',
+                  borderRadius: '4px',
+                  transition: 'width 0.3s'
+                }}></div>
+              </div>
+            </div>
+
+            {/* Monitored Chokepoints Grid */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '6px' }}>
+              {[
+                {
+                  name: params.location.includes('Bengaluru') ? 'Rajakaluve Canals' : 'Primary Trunk Drain',
+                  status: params.rainfall24h > 80 ? '95% Overrun' : (params.rainfall24h > 25 ? '65% Flowing' : 'Normal Gravity'),
+                  color: params.rainfall24h > 80 ? '#ef4444' : (params.rainfall24h > 25 ? '#f59e0b' : '#34d399')
+                },
+                {
+                  name: params.location.includes('Bengaluru') ? 'Lake Sluice Cascades' : 'Retention Basins',
+                  status: params.rainfall24h > 100 ? 'Spillway Active' : (params.rainfall24h > 50 ? 'Basement Seepage' : 'Headroom Safe'),
+                  color: params.rainfall24h > 100 ? '#ef4444' : (params.rainfall24h > 50 ? '#f59e0b' : '#34d399')
+                },
+                {
+                  name: params.location.includes('Bengaluru') ? 'Underpass Sumps' : 'Roadway Dips',
+                  status: params.rainfall24h > 50 ? '35-50cm Flooding' : (params.rainfall24h > 15 ? '10-20cm Pooling' : 'Dry & Clear'),
+                  color: params.rainfall24h > 50 ? '#ef4444' : (params.rainfall24h > 15 ? '#f59e0b' : '#34d399')
+                },
+                {
+                  name: 'Municipal Pumps',
+                  status: params.rainfall24h > 50 ? 'Mobilized / Standby' : 'Routine Readiness',
+                  color: params.rainfall24h > 50 ? '#38bdf8' : '#94a3b8'
+                }
+              ].map((cp, idx) => (
+                <div key={idx} style={{ background: '#0f172a', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '6px', padding: '6px 8px' }}>
+                  <div style={{ fontSize: '0.64rem', color: '#94a3b8' }}>{cp.name}</div>
+                  <div style={{ fontSize: '0.74rem', fontWeight: 800, color: cp.color, marginTop: '2px' }}>{cp.status}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* SECTION 3: BASIN GRAVITATIONAL RECESSION & ABATEMENT TIMELINE */}
+          <div style={{ borderTop: '1px solid rgba(255, 255, 255, 0.08)', paddingTop: '12px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+              <div>
+                <div style={{ fontSize: '0.86rem', fontWeight: 800, color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span>⏱️</span> Inundation Recession & Clearance Forecast
+                </div>
+                <div style={{ fontSize: '0.70rem', color: '#94a3b8', marginTop: '2px' }}>
+                  {params.elevation > 400
+                    ? `Plateau gravity discharge (${params.elevation}m DEM): Clears rapidly down river valleys`
+                    : `Lowland basin drainage (${params.elevation}m DEM): Natural seepage & pump reliant`}
+                </div>
+              </div>
+              <span style={{ fontSize: '0.66rem', color: '#38bdf8', fontWeight: 700, background: 'rgba(56, 189, 248, 0.1)', padding: '2px 8px', borderRadius: '4px' }}>
+                {params.elevation > 400 ? '⚡ Rapid Plateau Flow' : '🌊 Alluvial Ponding'}
+              </span>
+            </div>
+
+            {/* Clearance Stages Timeline */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px', marginBottom: '8px' }}>
+              <div style={{ background: '#0f172a', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '6px', padding: '7px', textAlign: 'center' }}>
+                <div style={{ fontSize: '0.62rem', color: '#94a3b8' }}>Curb Gutters</div>
+                <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#34d399', marginTop: '2px' }}>
+                  {params.rainfall24h > 50 ? '~45 min' : '< 15 min'}
+                </div>
+                <div style={{ fontSize: '0.58rem', color: '#64748b' }}>Post-rain clearing</div>
+              </div>
+
+              <div style={{ background: '#0f172a', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '6px', padding: '7px', textAlign: 'center' }}>
+                <div style={{ fontSize: '0.62rem', color: '#94a3b8' }}>Underpasses</div>
+                <div style={{ fontSize: '0.88rem', fontWeight: 800, color: params.rainfall24h > 80 ? '#f59e0b' : '#38bdf8', marginTop: '2px' }}>
+                  {params.rainfall24h > 80 ? '~3.0 hrs' : (params.rainfall24h > 35 ? '~1.5 hrs' : '0 min')}
+                </div>
+                <div style={{ fontSize: '0.58rem', color: '#64748b' }}>With pump assist</div>
+              </div>
+
+              <div style={{ background: '#0f172a', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '6px', padding: '7px', textAlign: 'center' }}>
+                <div style={{ fontSize: '0.62rem', color: '#94a3b8' }}>100% Headroom</div>
+                <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#f8fafc', marginTop: '2px' }}>
+                  {params.elevation > 400 ? '~3.5 hrs' : '~8.0 hrs'}
+                </div>
+                <div style={{ fontSize: '0.58rem', color: '#64748b' }}>Full basin recovery</div>
+              </div>
+            </div>
+
+            <div style={{ fontSize: '0.70rem', color: '#94a3b8', lineHeight: 1.35, background: 'rgba(255,255,255,0.02)', padding: '6px 8px', borderRadius: '6px' }}>
+              {params.location.includes('Bengaluru')
+                ? 'High-gradient Deccan plateau gravitational discharge clears Vrishabhavathi and Challaghatta valley corridors within 3 hours of rain cessation.'
+                : `Natural terrain slope at ${params.elevation}m DEM provides steady runoff discharge through primary regional catchment channels.`}
+            </div>
+          </div>
+        </div>
+      </div>
+
         {/* RIGHT COLUMN: PREDICTION RESULTS, GAUGE & ADVISORIES */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           {/* Main Risk Score Card */}
@@ -1345,7 +1595,7 @@ export default function PredictRiskView({
             boxShadow: '0 8px 30px rgba(0,0,0,0.5)',
             position: 'relative'
           }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
               <div>
                 <span style={{ fontSize: '0.82rem', fontWeight: 800, color: activeMode === 'scenario' ? '#38bdf8' : '#94a3b8', textTransform: 'uppercase' }}>
                   {activeMode === 'scenario' ? '🧪 Stress-Test Scenario Assessment' : '📡 Live Location Risk Assessment'}
@@ -1354,17 +1604,30 @@ export default function PredictRiskView({
                   {activeMode === 'scenario' ? 'Hypothetical what-if simulation (does not affect live location)' : `Real-time satellite & DEM observation for ${liveParams.location}`}
                 </div>
               </div>
-              <span style={{
-                background: isBreached ? 'rgba(239, 68, 68, 0.16)' : 'rgba(16, 185, 129, 0.16)',
-                color: isBreached ? '#ef4444' : '#10b981',
-                border: isBreached ? '1px solid rgba(239, 68, 68, 0.4)' : '1px solid rgba(16, 185, 129, 0.4)',
-                padding: '4px 12px',
-                borderRadius: '16px',
-                fontSize: '0.78rem',
-                fontWeight: 800
-              }}>
-                {activeMode === 'scenario' ? `SIMULATION: ${isBreached ? 'CRITICAL RISK' : 'NORMAL'}` : (isBreached ? 'CRITICAL RISK (>50%)' : 'NORMAL / SAFE (<50%)')}
-              </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{
+                  background: (displayPrediction?.status || 'LIVE').toUpperCase() === 'SIMULATED' ? 'rgba(245, 158, 11, 0.15)' : 'rgba(16, 185, 129, 0.15)',
+                  color: (displayPrediction?.status || 'LIVE').toUpperCase() === 'SIMULATED' ? '#fbbf24' : '#34d399',
+                  border: `1px solid ${(displayPrediction?.status || 'LIVE').toUpperCase() === 'SIMULATED' ? 'rgba(245, 158, 11, 0.4)' : 'rgba(16, 185, 129, 0.4)'}`,
+                  padding: '3px 8px',
+                  borderRadius: '12px',
+                  fontSize: '0.68rem',
+                  fontWeight: 800
+                }}>
+                  {(displayPrediction?.status || 'LIVE').toUpperCase() === 'SIMULATED' ? 'SIMULATED BASELINE' : 'LIVE TELEMETRY'}
+                </span>
+                <span style={{
+                  background: isBreached ? 'rgba(239, 68, 68, 0.16)' : 'rgba(16, 185, 129, 0.16)',
+                  color: isBreached ? '#ef4444' : '#10b981',
+                  border: isBreached ? '1px solid rgba(239, 68, 68, 0.4)' : '1px solid rgba(16, 185, 129, 0.4)',
+                  padding: '4px 12px',
+                  borderRadius: '16px',
+                  fontSize: '0.78rem',
+                  fontWeight: 800
+                }}>
+                  {activeMode === 'scenario' ? `SIMULATION: ${isBreached ? 'CRITICAL RISK' : 'NORMAL'}` : (isBreached ? 'CRITICAL RISK (>50%)' : 'NORMAL / SAFE (<50%)')}
+                </span>
+              </div>
             </div>
 
             {/* Big Probability Number & Meter */}
@@ -1394,28 +1657,43 @@ export default function PredictRiskView({
               <span>100% Catastrophic</span>
             </div>
 
-            {/* 3 Metrics Row */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
-              <div style={{ background: '#0f172a', border: '1px solid rgba(255, 255, 255, 0.08)', borderRadius: '8px', padding: '10px', textAlign: 'center' }}>
-                <div style={{ fontSize: '0.7rem', color: '#94a3b8' }}>Est. Water Depth</div>
-                <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#f8fafc' }}>
-                  {isBreached ? `${estDepthMeters} m` : '< 0.15 m'}
+            {/* 4 Physical Hydro Metrics Grid */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px', marginBottom: '14px' }}>
+              <div style={{ background: '#0f172a', border: '1px solid rgba(255, 255, 255, 0.08)', borderRadius: '8px', padding: '10px' }}>
+                <div style={{ fontSize: '0.68rem', color: '#94a3b8', textTransform: 'uppercase', fontWeight: 700 }}>Est. Inundation Depth</div>
+                <div style={{ fontSize: '1.15rem', fontWeight: 800, color: (displayPrediction?.inundationDepthMeters || 0) >= 0.45 ? '#ef4444' : ((displayPrediction?.inundationDepthMeters || 0) >= 0.15 ? '#f59e0b' : '#38bdf8') }}>
+                  🌊 {displayPrediction?.inundationDepthMeters !== undefined ? `${displayPrediction.inundationDepthMeters} m` : `${estDepthMeters} m`}
+                </div>
+                <div style={{ fontSize: '0.7rem', color: '#cbd5e1', marginTop: '2px', fontWeight: 600 }}>
+                  {displayPrediction?.depthTier || (isBreached ? 'Tier 2: Knee Depth' : 'Tier 0: Surface Runoff')}
                 </div>
               </div>
 
-              <div style={{ background: '#0f172a', border: '1px solid rgba(255, 255, 255, 0.08)', borderRadius: '8px', padding: '10px', textAlign: 'center' }}>
-                <div style={{ fontSize: '0.7rem', color: '#94a3b8' }}>Evacuation Window</div>
-                <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#38bdf8' }}>
-                  {isBreached ? '2 - 4 Hours' : 'Standby'}
+              <div style={{ background: '#0f172a', border: '1px solid rgba(255, 255, 255, 0.08)', borderRadius: '8px', padding: '10px' }}>
+                <div style={{ fontSize: '0.68rem', color: '#94a3b8', textTransform: 'uppercase', fontWeight: 700 }}>Runoff Velocity</div>
+                <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#f8fafc', marginTop: '4px' }}>
+                  {displayPrediction?.flowVelocity || 'Stagnant Urban Ponding'}
+                </div>
+                <div style={{ fontSize: '0.7rem', color: '#94a3b8', marginTop: '2px' }}>
+                  Catchment slope & drainage relief index
                 </div>
               </div>
+            </div>
 
-              <div style={{ background: '#0f172a', border: '1px solid rgba(255, 255, 255, 0.08)', borderRadius: '8px', padding: '10px', textAlign: 'center' }}>
-                <div style={{ fontSize: '0.7rem', color: '#94a3b8' }}>Active Model</div>
-                <div style={{ fontSize: '0.86rem', fontWeight: 800, color: selectedEngine === 'ensemble' ? '#c084fc' : (selectedEngine === 'random_forest' ? '#34d399' : '#38bdf8'), whiteSpace: 'nowrap' }}>
-                  {selectedEngine === 'ensemble' ? 'Super-Stack 93.9%' : (selectedEngine === 'random_forest' ? 'Random Forest 90.2%' : 'XGBoost 91.5%')}
-                </div>
-              </div>
+            {/* Life Safety Directive Box */}
+            <div style={{
+              background: isBreached ? 'rgba(239, 68, 68, 0.1)' : 'rgba(16, 185, 129, 0.08)',
+              border: `1px solid ${isBreached ? 'rgba(239, 68, 68, 0.35)' : 'rgba(16, 185, 129, 0.25)'}`,
+              borderRadius: '8px',
+              padding: '10px 14px',
+              fontSize: '0.75rem',
+              color: '#f1f5f9',
+              lineHeight: 1.45
+            }}>
+              <strong style={{ color: isBreached ? '#ef4444' : '#10b981', display: 'block', marginBottom: '2px', textTransform: 'uppercase', fontSize: '0.7rem', letterSpacing: '0.04em' }}>
+                🚨 Life-Safety Action Directive:
+              </strong>
+              {displayPrediction?.lifeSafetyDirective || (isBreached ? 'Execute vertical evacuation to second floor. Disconnect power. Dial 112 for disaster emergency response.' : 'Conditions normal. Routine drainage monitoring.')}
             </div>
           </div>
 

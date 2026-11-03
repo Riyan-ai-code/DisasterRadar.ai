@@ -141,6 +141,13 @@ export default function Sidebar({ isOpen, isDesktopHidden = false, activeTab, on
         <path d="M10 5l2-2 2 2"/>
       </svg>
     )},
+    { id: 'chatbot', label: 'Flood Prevention Chatbot', badge: 'Gemini AI', icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+        <path d="M8 9h8"/>
+        <path d="M8 13h5"/>
+      </svg>
+    )},
     { id: 'about', label: 'System Architecture', icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <circle cx="12" cy="12" r="10"/>
@@ -276,9 +283,24 @@ export default function Sidebar({ isOpen, isDesktopHidden = false, activeTab, on
                   {item.icon}
                 </div>
                 {!isCompact && (
-                  <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    {item.label}
-                  </span>
+                  <>
+                    <span style={{ flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {item.label}
+                    </span>
+                    {item.badge && (
+                      <span style={{
+                        background: 'rgba(56, 189, 248, 0.15)',
+                        color: '#38bdf8',
+                        border: '1px solid rgba(56, 189, 248, 0.3)',
+                        borderRadius: '10px',
+                        padding: '1px 6px',
+                        fontSize: '0.65rem',
+                        fontWeight: 800
+                      }}>
+                        {item.badge}
+                      </span>
+                    )}
+                  </>
                 )}
               </button>
             );

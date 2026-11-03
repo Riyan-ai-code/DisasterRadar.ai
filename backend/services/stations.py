@@ -1,4 +1,5 @@
 import time
+from datetime import datetime
 import requests
 from typing import List, Dict, Any
 from models.schemas import StationData
@@ -81,6 +82,8 @@ def fetch_live_stations_from_open_meteo() -> List[StationData]:
                 elev = float(loc_data.get("elevation", meta.get("base_elev", 15.0)))
 
                 # 100% Dynamic Machine Learning flood probability inference
+                stn_depth = 0.0
+                stn_tier = "Tier 0: Surface Runoff"
                 try:
                     from services.ensemble_predictor import predict_flood_risk_ensemble
                     from models.schemas import PredictionInput
@@ -100,6 +103,8 @@ def fetch_live_stations_from_open_meteo() -> List[StationData]:
                     prob = float(stn_pred.probability)
                     risk_key = stn_pred.riskClass.lower()
                     risk_label = stn_pred.riskLevel
+                    stn_depth = float(stn_pred.inundationDepthMeters or 0.0)
+                    stn_tier = str(stn_pred.depthTier or "Tier 0: Surface Runoff")
                 except Exception as ml_err:
                     # Fallback formula if ML pipeline is initializing
                     elev_factor = max(0.0, min(1.0, (800.0 - elev) / 800.0))
@@ -108,6 +113,8 @@ def fetch_live_stations_from_open_meteo() -> List[StationData]:
                     raw_score = rain_score + (elev_factor * 0.10) + hum_factor
                     prob = round(max(3.5, min(96.8, (raw_score * 75.0) + (15.0 if r24 > 30 else 5.0))), 1)
                     risk_key, risk_label = _compute_risk_level(prob)
+                    stn_depth = round(max(0.0, (r24 / 100.0) * 0.4), 2)
+                    stn_tier = "Tier 1: Ankle Depth" if stn_depth > 0.05 else "Tier 0: Surface Runoff"
 
                 results.append(StationData(
                     name=meta["name"],
@@ -120,7 +127,13 @@ def fetch_live_stations_from_open_meteo() -> List[StationData]:
                     r72=r72,
                     elev=elev,
                     temp=cur_temp,
-                    hum=cur_hum
+                    hum=cur_hum,
+                    source="Open-Meteo Global NWP & Copernicus DEM",
+                    last_updated=datetime.now().isoformat(),
+                    status="LIVE",
+                    missing_measurements=[],
+                    inundationDepthMeters=stn_depth,
+                    depthTier=stn_tier
                 ))
 
             if results:
@@ -128,21 +141,28 @@ def fetch_live_stations_from_open_meteo() -> List[StationData]:
     except Exception as e:
         print(f"Failed to fetch live stations from Open-Meteo: {e}")
 
-    # Graceful fallback baseline if completely offline
+    # Explicit offline baseline fallback - clearly badged as SIMULATED
     fallback_list = []
+    now_iso = datetime.now().isoformat()
     for s in STATION_METADATA:
         fallback_list.append(StationData(
             name=s["name"],
             lat=s["lat"],
             lng=s["lng"],
             risk="moderate",
-            level="Moderate",
+            level="Simulated Baseline (Offline)",
             prob=42.0,
             r24=15.0,
             r72=35.0,
             elev=s["base_elev"],
             temp=26.0,
-            hum=75.0
+            hum=75.0,
+            source="Simulated Offline Baseline (Open-Meteo Offline)",
+            last_updated=now_iso,
+            status="SIMULATED",
+            missing_measurements=["precipitation", "rain", "temperature_2m", "relative_humidity_2m"],
+            inundationDepthMeters=0.10,
+            depthTier="Tier 1: Ankle Depth (Simulated)"
         ))
     return fallback_list
 

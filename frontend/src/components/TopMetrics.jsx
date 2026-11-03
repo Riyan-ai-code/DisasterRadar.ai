@@ -7,6 +7,7 @@ export default function TopMetrics({
   latitude,
   longitude,
   recommendation,
+  prediction,
   locationTab = 'myLocation',
   homeLocation,
   onSwitchToMyLocation,
@@ -42,6 +43,12 @@ export default function TopMetrics({
     riskBgAlpha = 'rgba(234, 179, 8, 0.16)';
   }
 
+  const isSimulated = (prediction?.status || '').toUpperCase() === 'SIMULATED';
+  const depthMeters = prediction?.inundationDepthMeters !== undefined ? prediction.inundationDepthMeters : 0.0;
+  const depthTier = prediction?.depthTier || 'Tier 0: Surface Runoff (< 5 cm)';
+  const flowVelocity = prediction?.flowVelocity || 'Stagnant Urban Ponding';
+  const lifeSafetyDirective = prediction?.lifeSafetyDirective || recommendation;
+
   return (
     <section className="top-metrics-grid" style={{ marginBottom: '16px' }}>
       {/* 1. Flood Probability with 3D Radial Gauge */}
@@ -57,8 +64,16 @@ export default function TopMetrics({
           <span style={{ fontSize: '0.74rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: '#94a3b8', fontWeight: 700 }}>
             Flood Probability
           </span>
-          <span style={{ fontSize: '0.65rem', background: 'rgba(56, 189, 248, 0.12)', color: '#38bdf8', padding: '2px 6px', borderRadius: '4px', border: '1px solid rgba(56, 189, 248, 0.25)' }}>
-            XGB-0.55
+          <span style={{
+            fontSize: '0.62rem',
+            background: isSimulated ? 'rgba(245, 158, 11, 0.15)' : 'rgba(16, 185, 129, 0.15)',
+            color: isSimulated ? '#fbbf24' : '#34d399',
+            padding: '2px 6px',
+            borderRadius: '4px',
+            border: `1px solid ${isSimulated ? 'rgba(245, 158, 11, 0.35)' : 'rgba(16, 185, 129, 0.35)'}`,
+            fontWeight: 800
+          }}>
+            {isSimulated ? 'SIMULATED BASELINE' : 'LIVE MODEL (93.8%)'}
           </span>
         </div>
         <div className="metric-body" style={{ display: 'flex', alignItems: 'center', gap: '14px', marginTop: '6px' }}>
@@ -106,14 +121,14 @@ export default function TopMetrics({
             <div style={{ fontSize: '1.45rem', fontWeight: 800, color: riskColor, letterSpacing: '-0.02em', lineHeight: 1.1 }}>
               {probability}%
             </div>
-            <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '4px' }}>
+            <div style={{ fontSize: '0.72rem', color: '#94a3b8', marginTop: '4px' }}>
               {isCritical ? 'Inundation imminent' : (isHigh ? 'High saturation threat' : (isModerate ? 'Moderate waterlogging risk' : 'Conditions normal'))}
             </div>
           </div>
         </div>
       </div>
 
-      {/* 2. Risk Level */}
+      {/* 2. Risk Classification & Physical Inundation Depth Tier */}
       <div
         className="card metric-card"
         style={{
@@ -124,16 +139,20 @@ export default function TopMetrics({
       >
         <div className="metric-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <span style={{ fontSize: '0.74rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: '#94a3b8', fontWeight: 700 }}>
-            Risk Classification
+            Physical Inundation Tier
           </span>
           <span
             style={{
-              width: '8px',
-              height: '8px',
-              borderRadius: '50%',
-              backgroundColor: riskColor
+              fontSize: '0.65rem',
+              color: depthMeters >= 0.45 ? '#fca5a5' : (depthMeters >= 0.15 ? '#fde68a' : '#34d399'),
+              background: 'rgba(0, 0, 0, 0.3)',
+              padding: '2px 6px',
+              borderRadius: '4px',
+              fontWeight: 800
             }}
-          />
+          >
+            🌊 {depthMeters} m
+          </span>
         </div>
         <div className="metric-body" style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '6px' }}>
           <div
@@ -157,12 +176,12 @@ export default function TopMetrics({
               <path d="M2 21c2-1 4-1 6 0 2 1 4 1 6 0 2-1 4-1 6 0"/>
             </svg>
           </div>
-          <div className="metric-info">
-            <div style={{ fontSize: '1.25rem', fontWeight: 800, color: riskColor, textTransform: 'uppercase', letterSpacing: '0.02em' }}>
-              {riskLevel}
+          <div className="metric-info" style={{ overflow: 'hidden' }}>
+            <div style={{ fontSize: '1.05rem', fontWeight: 800, color: riskColor, letterSpacing: '0.01em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {depthTier}
             </div>
-            <div style={{ fontSize: '0.74rem', color: '#cbd5e1', fontWeight: 600 }}>
-              {riskBadgeLabel}
+            <div style={{ fontSize: '0.72rem', color: '#94a3b8', marginTop: '2px' }}>
+              Flow: <strong style={{ color: '#cbd5e1' }}>{flowVelocity}</strong>
             </div>
           </div>
         </div>
@@ -244,7 +263,7 @@ export default function TopMetrics({
         </div>
       </div>
 
-      {/* 4. Recommendation & Advisory */}
+      {/* 4. Recommendation & Life-Safety Directive */}
       <div
         className="card metric-card recommendation-card"
         style={{
@@ -258,29 +277,47 @@ export default function TopMetrics({
             <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
               <path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/>
             </svg>
-            <span>AI Risk Assessment</span>
+            <span>Life-Safety Directive</span>
           </div>
-          {onOpenExplainer && (
-            <button
-              onClick={onOpenExplainer}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <a
+              href="tel:112"
               style={{
-                background: 'rgba(56, 189, 248, 0.12)',
-                border: '1px solid rgba(56, 189, 248, 0.3)',
+                background: '#dc2626',
+                border: '1px solid #ef4444',
                 borderRadius: '4px',
-                color: '#38bdf8',
-                fontSize: '0.68rem',
-                fontWeight: 700,
-                padding: '2px 8px',
-                cursor: 'pointer',
-                transition: 'all 0.2s ease'
+                color: '#fff',
+                fontSize: '0.65rem',
+                fontWeight: 800,
+                padding: '2px 6px',
+                textDecoration: 'none'
               }}
+              title="National Emergency Helpline"
             >
-              Evacuation SOP →
-            </button>
-          )}
+              📞 112
+            </a>
+            {onOpenExplainer && (
+              <button
+                onClick={onOpenExplainer}
+                style={{
+                  background: 'rgba(56, 189, 248, 0.12)',
+                  border: '1px solid rgba(56, 189, 248, 0.3)',
+                  borderRadius: '4px',
+                  color: '#38bdf8',
+                  fontSize: '0.68rem',
+                  fontWeight: 700,
+                  padding: '2px 8px',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                Evacuation SOP →
+              </button>
+            )}
+          </div>
         </div>
         <div className="rec-body" style={{ fontSize: '0.78rem', color: '#e2e8f0', lineHeight: 1.45 }}>
-          {recommendation || 'Monitor rainfall and drainage conditions closely. Issue early warning for low-lying areas and prepare emergency response resources.'}
+          {lifeSafetyDirective}
         </div>
       </div>
     </section>

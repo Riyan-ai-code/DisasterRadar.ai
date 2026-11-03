@@ -88,11 +88,22 @@ export default function RiskMap({ stations, onSelectStation, onOpenMiraMap, acti
       // Popup Content
       const popupDiv = document.createElement('div');
       popupDiv.style.fontFamily = 'Inter, sans-serif';
-      popupDiv.style.padding = '2px 4px';
+      const isSim = (station.status || '').toUpperCase() === 'SIMULATED';
       popupDiv.innerHTML = `
-        <div style="font-weight: 700; font-size: 0.88rem; color: #1e293b; margin-bottom: 2px;">${station.name}</div>
-        <div style="font-size: 0.75rem; color: #64748b; margin-bottom: 6px;">
+        <div style="font-weight: 700; font-size: 0.88rem; color: #1e293b; margin-bottom: 2px;">
+          ${station.name}
+          <span style="font-size: 9px; padding: 1px 5px; border-radius: 3px; margin-left: 4px; font-weight: 800; background: ${isSim ? '#fef3c7' : '#d1fae5'}; color: ${isSim ? '#b45309' : '#047857'};">
+            ${isSim ? 'SIMULATED' : 'LIVE'}
+          </span>
+        </div>
+        <div style="font-size: 0.75rem; color: #64748b; margin-bottom: 2px;">
           Risk: <strong style="color: ${color}; text-transform: uppercase;">${station.risk}</strong> (${station.prob}%)
+        </div>
+        <div style="font-size: 0.72rem; color: #334155; margin-bottom: 2px;">
+          🌊 Depth: <strong>${station.inundationDepthMeters !== undefined ? `${station.inundationDepthMeters}m` : '0.0m'}</strong> (${station.depthTier || 'Surface Runoff'})
+        </div>
+        <div style="font-size: 0.68rem; color: #94a3b8; margin-bottom: 6px;">
+          📡 ${station.source || 'Open-Meteo & Copernicus'}
         </div>
       `;
 

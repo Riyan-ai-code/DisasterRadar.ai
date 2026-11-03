@@ -1,23 +1,14 @@
 {
-  "model_name": "XGBoost Flood Risk Classifier (Production Pipeline)",
+  "model_name": "XGBoost Production Flood Risk Classifier",
   "model_type": "xgboost.XGBClassifier",
   "serialization_format": "native_json",
   "model_file": "flood_model.json",
-  "accuracy": 0.9147,
-  "precision": 0.9044,
-  "recall": 0.9275,
-  "f1_score": 0.9158,
-  "roc_auc": 0.9676,
-  "pr_auc": 0.9602,
-  "brier_score": 0.0625,
-  "best_iteration": 120,
-  "total_boosting_trees": 120,
-  "total_samples": 12417,
-  "latency_ms": 1.8,
-  "confusion_matrix": [
-    [5600, 609],
-    [450, 5758]
-  ],
+  "accuracy": 0.9558,
+  "precision": 0.9572,
+  "recall": 0.9543,
+  "f1_score": 0.9558,
+  "roc_auc": 0.9944,
+  "brier_score": 0.0301,
   "feature_names": [
     "rainfall_24h",
     "rainfall_72h",
@@ -35,22 +26,21 @@
     "water_contrast",
     "drainage_stress"
   ],
-  "feature_shap_importance": {
-    "rainfall_24h": 1.9836,
-    "drainage_stress": 1.9255,
-    "rainfall_72h": 0.3828,
-    "elevation": 0.2784,
-    "precip_ratio": 0.1615,
-    "ponding_hazard": 0.1238,
-    "urbanization_index": 0.0927,
-    "ndwi": 0.0794,
-    "ndvi": 0.0655,
-    "water_contrast": 0.0552,
-    "twi": 0.0404,
-    "drainage_capacity": 0.0374,
-    "slope": 0.0197,
-    "disaster_unpreparedness": 0.0123,
-    "infrastructure_decay": 0.0092
-  },
-  "generalization_diagnosis": "HIGHLY OPTIMIZED & WELL GENERALIZED (91.47% Accuracy, 92.75% Recall, 0.9676 ROC-AUC across 12,417 test samples)."
+  "feature_importances": {
+    "rainfall_24h": 0.1151,
+    "rainfall_72h": 0.3468,
+    "elevation": 0.0091,
+    "slope": 0.0129,
+    "twi": 0.0111,
+    "ndwi": 0.0063,
+    "ndvi": 0.0145,
+    "drainage_capacity": 0.0544,
+    "urbanization_index": 0.0185,
+    "infrastructure_decay": 0.0149,
+    "disaster_unpreparedness": 0.0091,
+    "precip_ratio": 0.0895,
+    "ponding_hazard": 0.0637,
+    "water_contrast": 0.0076,
+    "drainage_stress": 0.2265
+  }
 }
