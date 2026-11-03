@@ -356,4 +356,67 @@ class CompoundFloodRiskResponse(BaseModel):
     provenance: DataProvenance
 
 
+# ==============================================================================
+# PHASE 6: NLP SOS / DISTRESS INTELLIGENCE & NDMA/IMD SOP KNOWLEDGE RAG SCHEMAS
+# ==============================================================================
+
+class SosAnalyzeRequest(BaseModel):
+    text: str = Field(..., description="Raw social media post, helpline transcript, or citizen SOS message")
+    defaultLocation: Optional[str] = Field(None, description="Optional fallback location if none is mentioned in text")
+    persistToQueue: bool = Field(True, description="Whether to add the analyzed SOS item to the live dispatch queue")
+
+
+class SosNerEntities(BaseModel):
+    extractedLocations: List[str]
+    resolvedLatitude: float
+    resolvedLongitude: float
+    vulnerableGroups: List[str]
+    strandedPeopleCount: int
+    waterDepthMentions: List[str]
+    estimatedWaterDepthCm: float
+    hazardEntities: List[str]
+
+
+class SosAnalysisResponse(BaseModel):
+    id: Optional[str] = None
+    rawText: str
+    classification: str = Field(..., description="LIFE_THREATENING_SOS, URGENT_EVACUATION_REQUEST, INFRASTRUCTURE_HAZARD_REPORT, or INFORMATIONAL_STATUS_UPDATE")
+    urgencyScore: float = Field(..., description="Automated urgency score (0-100)")
+    triagePriority: str = Field(..., description="CRITICAL_P1, HIGH_P2, MODERATE_P3, or LOW_P4")
+    dispatchSla: str
+    recommendedRescueAsset: str
+    nerEntities: SosNerEntities
+    scoreBreakdown: List[dict]
+    matchedOfficialSop: Optional[dict] = None
+    analyzedAtUtc: str
+
+
+class SopRagQueryRequest(BaseModel):
+    query: str = Field(..., description="Natural language query or operational incident scenario")
+    hazardFilter: Optional[str] = Field("ALL", description="ALL, FLOOD, CYCLONE, STORM_SURGE, ELECTRICAL_SAFETY")
+    topK: int = Field(3, ge=1, le=8)
+    telemetry: Optional[dict] = None
+
+
+class SopDocumentChunk(BaseModel):
+    docId: str
+    manualTitle: str
+    sectionRef: str
+    authority: str
+    hazardCategory: str
+    similarityScore: float
+    summary: str
+    officialDirectives: List[str]
+
+
+class SopRagQueryResponse(BaseModel):
+    query: str
+    retrievalEngine: str
+    totalCorpusSize: int
+    retrievedDocuments: List[SopDocumentChunk]
+    synthesizedBriefing: str
+    generatedAtUtc: str
+
+
+
 

@@ -1,5 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { queryFloodAssistant } from '../services/api';
+import {
+  queryFloodAssistant,
+  analyzeSosDistressPost,
+  fetchSosTriageFeed,
+  queryNdmaSopRag
+} from '../services/api';
 
 export default function AiExplainerView({
   onBackToDashboard,
@@ -51,6 +56,93 @@ export default function AiExplainerView({
   // Conversational Chatbot State
   const [inputQuery, setInputQuery] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
+
+  // Phase 6: NLP SOS Distress Intelligence & NDMA/IMD SOP Knowledge RAG State
+  const [sosInputText, setSosInputText] = useState(
+    'URGENT SOS! 6 family members including a 4-month infant and my grandmother on oxygen concentrator trapped on 1st floor roof near Narsapur Ferry Road, Kakinada. Cyclone Arnab storm surge water is 5 feet deep and live electric transformer pole sparked outside!'
+  );
+  const [sosAnalysisResult, setSosAnalysisResult] = useState(null);
+  const [sosTriageFeed, setSosTriageFeed] = useState([]);
+  const [isAnalyzingSos, setIsAnalyzingSos] = useState(false);
+
+  const [ragQueryInput, setRagQueryInput] = useState(
+    'What is the official NDMA and IMD protocol for Cyclone Arnab coastal storm surge evacuation, rooftop rescue, and electrical transformer isolation?'
+  );
+  const [ragHazardFilter, setRagHazardFilter] = useState('ALL');
+  const [ragResult, setRagResult] = useState(null);
+  const [isQueryingRag, setIsQueryingRag] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+    fetchSosTriageFeed().then(feed => {
+      if (mounted && Array.isArray(feed) && feed.length > 0) {
+        setSosTriageFeed(feed);
+        setSosAnalysisResult(feed[0]);
+      }
+    });
+    queryNdmaSopRag({
+      query: 'Cyclone coastal storm surge evacuation rooftop rescue and electrical transformer isolation',
+      hazardFilter: 'ALL',
+      topK: 3,
+      telemetry: {
+        location: params?.location || currentLocation?.name || 'Narsapur / Kakinada Coast',
+        rainfall24h: params?.rainfall24h ?? 185,
+        probability: prediction?.probability ?? 84.2,
+        riskLevel: prediction?.riskLevel || 'CRITICAL'
+      }
+    }).then(res => {
+      if (mounted && res) setRagResult(res);
+    });
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const handleRunSosAnalysis = async (customText) => {
+    const textToAnalyze = (customText ?? sosInputText).trim();
+    if (!textToAnalyze) return;
+    if (customText) setSosInputText(customText);
+    setIsAnalyzingSos(true);
+    try {
+      const res = await analyzeSosDistressPost({
+        text: textToAnalyze,
+        defaultLocation: params?.location || currentLocation?.name || 'Narsapur, Andhra Pradesh',
+        persistToQueue: true
+      });
+      setSosAnalysisResult(res);
+      const updatedFeed = await fetchSosTriageFeed();
+      if (Array.isArray(updatedFeed) && updatedFeed.length > 0) {
+        setSosTriageFeed(updatedFeed);
+      }
+    } finally {
+      setIsAnalyzingSos(false);
+    }
+  };
+
+  const handleRunSopRagQuery = async (customQuery, customFilter) => {
+    const q = (customQuery ?? ragQueryInput).trim();
+    const hf = customFilter ?? ragHazardFilter;
+    if (!q) return;
+    if (customQuery) setRagQueryInput(customQuery);
+    if (customFilter) setRagHazardFilter(customFilter);
+    setIsQueryingRag(true);
+    try {
+      const res = await queryNdmaSopRag({
+        query: q,
+        hazardFilter: hf,
+        topK: 3,
+        telemetry: {
+          location: params?.location || currentLocation?.name || 'Monitored Basin',
+          rainfall24h: params?.rainfall24h ?? 140,
+          probability: prediction?.probability ?? 78.4,
+          riskLevel: prediction?.riskLevel || 'HIGH'
+        }
+      });
+      setRagResult(res);
+    } finally {
+      setIsQueryingRag(false);
+    }
+  };
   const [messages, setMessages] = useState([
     {
       id: 'msg-init',
@@ -1083,6 +1175,7 @@ Ask me anything regarding life-safety evacuation steps, vehicle escape protocols
       }}>
         {[
           { id: 'evacuation', label: '🚨 How to Evacuate in a Flood', badge: 'Critical SOP' },
+          { id: 'nlp_rag', label: '🆘 NLP SOS Triage & NDMA SOP RAG', badge: 'Phase 6 AI' },
           { id: 'hydrodynamics', label: '🌊 Flood Water Depth & Survival Matrix', badge: 'Life Safety' },
           { id: 'compliance', label: '🎓 Project 7 (CO4 | L6) Flood Audit', badge: '7/7 Fulfilled' },
           { id: 'checklist', label: '🎒 Flood Go-Bag & Asset Checklist', badge: `${checklistPercent}% Ready` },
@@ -1292,6 +1385,424 @@ Ask me anything regarding life-safety evacuation steps, vehicle escape protocols
             </div>
           </div>
 
+        </div>
+      )}
+
+      {/* ========================================================= */}
+      {/* SUB-TAB 6: PHASE 6 NLP SOS TRIAGE & NDMA/IMD SOP RAG       */}
+      {/* ========================================================= */}
+      {activeSubTab === 'nlp_rag' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          {/* TOP OVERVIEW BANNER */}
+          <div style={{
+            background: 'linear-gradient(135deg, #0b1120 0%, #0f172a 100%)',
+            border: '1px solid rgba(56, 189, 248, 0.28)',
+            borderRadius: '16px',
+            padding: '22px 26px',
+            boxShadow: '0 4px 20px rgba(0,0,0,0.35)'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
+              <div>
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'rgba(239, 68, 68, 0.16)', border: '1px solid rgba(239, 68, 68, 0.4)', color: '#fca5a5', padding: '4px 12px', borderRadius: '20px', fontSize: '0.74rem', fontWeight: 800, marginBottom: '8px' }}>
+                  <span>🆘 PHASE 6 DELIVERABLE</span>
+                  <span>•</span>
+                  <span>NLP DISTRESS CLASSIFIER + DISASTER NER + NDMA/IMD SOP KNOWLEDGE RAG</span>
+                </div>
+                <h2 style={{ margin: '0 0 6px', fontSize: '1.35rem', fontWeight: 800, color: '#f8fafc' }}>
+                  Social Media / Emergency SOS Distress Triage & Grounded NDMA/IMD SOP Retrieval
+                </h2>
+                <p style={{ margin: 0, fontSize: '0.85rem', color: '#94a3b8', lineHeight: 1.55 }}>
+                  Automatically classifies citizen distress posts, extracts stranded locations with Indian Flood/Cyclone Gazetteer GPS coordinates, vulnerable groups, and water depth (cm) via Named Entity Recognition (NER), computes a 0–100 urgency score, and retrieves official NDMA / IMD RSMC / INCOIS / NDRF Standard Operating Procedures.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* TWO-COLUMN GRID: LEFT = NLP SOS ANALYZER, RIGHT = NER & URGENCY SCORECARD */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))', gap: '20px' }}>
+            {/* LEFT PANEL: SOS INPUT & PRESET SCENARIOS */}
+            <div style={{
+              background: '#0b1120',
+              border: '1px solid rgba(56, 189, 248, 0.2)',
+              borderRadius: '16px',
+              padding: '22px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '14px'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: '#f8fafc' }}>
+                  📡 Live SOS / Distress Message Classifier & NER Extractor
+                </h3>
+                <span style={{ fontSize: '0.74rem', color: '#38bdf8', fontWeight: 700, background: 'rgba(56, 189, 248, 0.12)', padding: '3px 10px', borderRadius: '12px' }}>
+                  POST /api/nlp/sos-analyze
+                </span>
+              </div>
+
+              <div style={{ fontSize: '0.78rem', color: '#94a3b8' }}>
+                Select a real-world Indian disaster distress sample or paste any social media / helpline transcript:
+              </div>
+
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                {[
+                  {
+                    label: '🌀 Cyclone Arnab Rooftop + Infant SOS',
+                    text: 'URGENT SOS! 6 family members including a 4-month infant and my grandmother on oxygen concentrator trapped on 1st floor roof near Narsapur Ferry Road, Kakinada. Cyclone Arnab storm surge water is 5 feet deep and live electric transformer pole sparked outside!'
+                  },
+                  {
+                    label: '🌊 Chennai Velachery 3ft Apartment Flood',
+                    text: 'Water entering ground floor apartments up to 3 feet in Velachery Ward 178, Chennai after 240mm rain. 12 senior citizens stranded, cars floating in parking lot, need SDRF inflatable boat evacuation immediately.'
+                  },
+                  {
+                    label: '🐄 Assam Kharupetia Embankment & Livestock',
+                    text: 'Brahmaputra embankment seepage and 1.2m floodwater near Kharupetia Ward 4, Assam. 8 villagers and 15 cattle stranded near low-lying char land, requesting boat and fodder relief.'
+                  },
+                  {
+                    label: '⚡ Mira Bhayandar 33kV Downed Power Line',
+                    text: '33kV electric pole and large banyan tree fallen across Golden Nest road in Mira Bhayandar during high tide backflow (45 cm waterlogging). Traffic blocked, need DISCOM line isolation crew.'
+                  }
+                ].map((preset, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => handleRunSosAnalysis(preset.text)}
+                    style={{
+                      background: '#0f172a',
+                      border: '1px solid #1e293b',
+                      color: '#cbd5e1',
+                      borderRadius: '8px',
+                      padding: '6px 11px',
+                      fontSize: '0.76rem',
+                      fontWeight: 600,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    {preset.label}
+                  </button>
+                ))}
+              </div>
+
+              <textarea
+                rows={4}
+                value={sosInputText}
+                onChange={(e) => setSosInputText(e.target.value)}
+                placeholder="Paste incoming emergency SOS message, tweet, or 112 helpline transcript..."
+                style={{
+                  width: '100%',
+                  background: '#070d19',
+                  border: '1px solid #1e293b',
+                  borderRadius: '10px',
+                  padding: '12px 14px',
+                  color: '#f8fafc',
+                  fontSize: '0.86rem',
+                  lineHeight: 1.5,
+                  resize: 'vertical',
+                  boxSizing: 'border-box'
+                }}
+              />
+
+              <button
+                onClick={() => handleRunSosAnalysis()}
+                disabled={isAnalyzingSos || !sosInputText.trim()}
+                style={{
+                  background: isAnalyzingSos ? '#1e293b' : '#ef4444',
+                  color: '#ffffff',
+                  border: 'none',
+                  borderRadius: '10px',
+                  padding: '11px 18px',
+                  fontSize: '0.86rem',
+                  fontWeight: 800,
+                  cursor: isAnalyzingSos ? 'not-allowed' : 'pointer',
+                  alignSelf: 'flex-start',
+                  boxShadow: '0 4px 12px rgba(239, 68, 68, 0.35)'
+                }}
+              >
+                {isAnalyzingSos ? '⏳ Running NER & Urgency Triage...' : '🚨 Classify SOS, Extract NER & Score Urgency'}
+              </button>
+            </div>
+
+            {/* RIGHT PANEL: AUTOMATED URGENCY SCORE & EXTRACTED NER ENTITIES */}
+            {sosAnalysisResult && (
+              <div style={{
+                background: '#0b1120',
+                border: `1.5px solid ${
+                  sosAnalysisResult.triagePriority === 'CRITICAL_P1'
+                    ? '#ef4444'
+                    : sosAnalysisResult.triagePriority === 'HIGH_P2'
+                    ? '#f97316'
+                    : '#38bdf8'
+                }`,
+                borderRadius: '16px',
+                padding: '22px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '14px'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{
+                      background: sosAnalysisResult.triagePriority === 'CRITICAL_P1' ? '#ef4444' : '#f97316',
+                      color: '#ffffff',
+                      padding: '4px 10px',
+                      borderRadius: '6px',
+                      fontSize: '0.75rem',
+                      fontWeight: 900
+                    }}>
+                      {sosAnalysisResult.triagePriority} • {sosAnalysisResult.classification.replace(/_/g, ' ')}
+                    </span>
+                    <span style={{ fontSize: '0.78rem', color: '#94a3b8', fontWeight: 600 }}>
+                      SLA: {sosAnalysisResult.dispatchSla}
+                    </span>
+                  </div>
+
+                  <div style={{ textAlign: 'right' }}>
+                    <span style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 700, display: 'block' }}>
+                      AUTOMATED URGENCY SCORE
+                    </span>
+                    <span style={{
+                      fontSize: '1.55rem',
+                      fontWeight: 900,
+                      color: sosAnalysisResult.urgencyScore >= 78 ? '#ef4444' : '#f97316'
+                    }}>
+                      {sosAnalysisResult.urgencyScore} / 100
+                    </span>
+                  </div>
+                </div>
+
+                {/* EXTRACTED NER ENTITIES GRID */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: '10px' }}>
+                  <div style={{ background: '#0f172a', border: '1px solid #1e293b', borderRadius: '10px', padding: '10px 12px' }}>
+                    <div style={{ fontSize: '0.7rem', color: '#38bdf8', fontWeight: 800 }}>📍 NER STRANDED LOCATIONS & GPS</div>
+                    <div style={{ fontSize: '0.82rem', color: '#f8fafc', fontWeight: 700, marginTop: '4px' }}>
+                      {(sosAnalysisResult.nerEntities?.extractedLocations || []).join(' • ')}
+                    </div>
+                    <div style={{ fontSize: '0.74rem', color: '#94a3b8', marginTop: '2px' }}>
+                      Resolved Coords: {sosAnalysisResult.nerEntities?.resolvedLatitude}°N, {sosAnalysisResult.nerEntities?.resolvedLongitude}°E
+                    </div>
+                  </div>
+
+                  <div style={{ background: '#0f172a', border: '1px solid #1e293b', borderRadius: '10px', padding: '10px 12px' }}>
+                    <div style={{ fontSize: '0.7rem', color: '#f59e0b', fontWeight: 800 }}>👨‍👩‍👧‍👦 VULNERABLE GROUPS & HEADCOUNT</div>
+                    <div style={{ fontSize: '0.82rem', color: '#f8fafc', fontWeight: 700, marginTop: '4px' }}>
+                      {sosAnalysisResult.nerEntities?.strandedPeopleCount || 1} Persons Stranded
+                    </div>
+                    <div style={{ fontSize: '0.74rem', color: '#fde68a', marginTop: '2px' }}>
+                      {(sosAnalysisResult.nerEntities?.vulnerableGroups || []).length > 0
+                        ? sosAnalysisResult.nerEntities.vulnerableGroups.join(', ')
+                        : 'No specific vulnerable tag'}
+                    </div>
+                  </div>
+
+                  <div style={{ background: '#0f172a', border: '1px solid #1e293b', borderRadius: '10px', padding: '10px 12px' }}>
+                    <div style={{ fontSize: '0.7rem', color: '#ec4899', fontWeight: 800 }}>🌊 NER WATER DEPTH & HAZARDS</div>
+                    <div style={{ fontSize: '0.82rem', color: '#f8fafc', fontWeight: 700, marginTop: '4px' }}>
+                      {sosAnalysisResult.nerEntities?.estimatedWaterDepthCm || 0} cm ({(sosAnalysisResult.nerEntities?.waterDepthMentions || []).join(', ')})
+                    </div>
+                    <div style={{ fontSize: '0.74rem', color: '#fbcfe8', marginTop: '2px' }}>
+                      {(sosAnalysisResult.nerEntities?.hazardEntities || []).join(' • ')}
+                    </div>
+                  </div>
+                </div>
+
+                {/* RECOMMENDED RESCUE ASSET & LINKED OFFICIAL SOP */}
+                <div style={{ background: 'rgba(2, 132, 199, 0.12)', border: '1px solid rgba(56, 189, 248, 0.3)', borderRadius: '10px', padding: '12px 14px' }}>
+                  <div style={{ fontSize: '0.75rem', fontWeight: 800, color: '#38bdf8', marginBottom: '4px' }}>
+                    🚁 Recommended NDRF/SDRF Rescue Asset: <span style={{ color: '#f8fafc' }}>{sosAnalysisResult.recommendedRescueAsset}</span>
+                  </div>
+                  {sosAnalysisResult.matchedOfficialSop && (
+                    <div style={{ fontSize: '0.79rem', color: '#cbd5e1', lineHeight: 1.45 }}>
+                      <strong style={{ color: '#34d399' }}>Matched SOP [{sosAnalysisResult.matchedOfficialSop.docId}]: </strong>
+                      {sosAnalysisResult.matchedOfficialSop.primaryDirective}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* PRIORITIZED SOS TRIAGE DISPATCH QUEUE TABLE */}
+          <div style={{
+            background: '#0b1120',
+            border: '1px solid rgba(56, 189, 248, 0.18)',
+            borderRadius: '16px',
+            padding: '22px'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', flexWrap: 'wrap', gap: '8px' }}>
+              <h3 style={{ margin: 0, fontSize: '1.08rem', fontWeight: 800, color: '#f8fafc' }}>
+                📋 Prioritized NDRF / SDRF SOS Triage Dispatch Queue (Sorted by Automated Urgency Score)
+              </h3>
+              <span style={{ fontSize: '0.76rem', color: '#94a3b8' }}>
+                Total Active Triage Records: <strong style={{ color: '#38bdf8' }}>{sosTriageFeed.length}</strong>
+              </span>
+            </div>
+
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.81rem' }}>
+                <thead>
+                  <tr style={{ borderBottom: '1px solid #1e293b', color: '#94a3b8', textAlign: 'left' }}>
+                    <th style={{ padding: '10px 8px' }}>Priority</th>
+                    <th style={{ padding: '10px 8px' }}>Urgency</th>
+                    <th style={{ padding: '10px 8px' }}>Extracted Location & GPS</th>
+                    <th style={{ padding: '10px 8px' }}>Water Depth</th>
+                    <th style={{ padding: '10px 8px' }}>Vulnerable Groups</th>
+                    <th style={{ padding: '10px 8px' }}>Recommended NDRF / SDRF Dispatch</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {sosTriageFeed.map((item, idx) => (
+                    <tr
+                      key={item.id || idx}
+                      onClick={() => setSosAnalysisResult(item)}
+                      style={{
+                        borderBottom: '1px solid rgba(30, 41, 59, 0.7)',
+                        cursor: 'pointer',
+                        background: sosAnalysisResult?.id === item.id ? 'rgba(56, 189, 248, 0.08)' : 'transparent'
+                      }}
+                    >
+                      <td style={{ padding: '10px 8px', fontWeight: 800, color: item.triagePriority === 'CRITICAL_P1' ? '#ef4444' : '#f97316' }}>
+                        {item.triagePriority}
+                      </td>
+                      <td style={{ padding: '10px 8px', fontWeight: 900, color: '#f8fafc' }}>
+                        {item.urgencyScore}/100
+                      </td>
+                      <td style={{ padding: '10px 8px', color: '#e2e8f0' }}>
+                        <div style={{ fontWeight: 700 }}>{(item.nerEntities?.extractedLocations || [])[0]}</div>
+                        <div style={{ fontSize: '0.72rem', color: '#64748b' }}>
+                          {item.nerEntities?.resolvedLatitude}°N, {item.nerEntities?.resolvedLongitude}°E
+                        </div>
+                      </td>
+                      <td style={{ padding: '10px 8px', color: '#38bdf8', fontWeight: 700 }}>
+                        {item.nerEntities?.estimatedWaterDepthCm || 0} cm
+                      </td>
+                      <td style={{ padding: '10px 8px', color: '#fde68a' }}>
+                        {(item.nerEntities?.vulnerableGroups || []).join(', ') || 'General'}
+                      </td>
+                      <td style={{ padding: '10px 8px', color: '#cbd5e1' }}>
+                        {item.recommendedRescueAsset}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* NDMA / IMD SOP KNOWLEDGE RAG RETRIEVAL STUDIO */}
+          <div style={{
+            background: '#0b1120',
+            border: '1px solid rgba(16, 185, 129, 0.28)',
+            borderRadius: '16px',
+            padding: '22px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '16px'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '1.12rem', fontWeight: 800, color: '#f8fafc' }}>
+                  📚 NDMA / IMD / INCOIS / NDRF Standard Operating Procedure (SOP) Knowledge RAG
+                </h3>
+                <p style={{ margin: '4px 0 0', fontSize: '0.81rem', color: '#94a3b8' }}>
+                  Hybrid TF-IDF Cosine Vector + BM25 lexical retrieval over official Indian disaster manuals with automated Incident Commander briefing synthesis.
+                </p>
+              </div>
+              <span style={{ fontSize: '0.74rem', color: '#34d399', fontWeight: 700, background: 'rgba(16, 185, 129, 0.14)', padding: '4px 10px', borderRadius: '12px' }}>
+                POST /api/rag/sop-query
+              </span>
+            </div>
+
+            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+              <input
+                type="text"
+                value={ragQueryInput}
+                onChange={(e) => setRagQueryInput(e.target.value)}
+                placeholder="Query official NDMA, IMD RSMC, INCOIS, or NDRF SOP manuals..."
+                style={{
+                  flex: '1 1 340px',
+                  background: '#070d19',
+                  border: '1px solid #1e293b',
+                  borderRadius: '10px',
+                  padding: '10px 14px',
+                  color: '#f8fafc',
+                  fontSize: '0.86rem'
+                }}
+              />
+              <select
+                value={ragHazardFilter}
+                onChange={(e) => handleRunSopRagQuery(ragQueryInput, e.target.value)}
+                style={{
+                  background: '#0f172a',
+                  border: '1px solid #1e293b',
+                  borderRadius: '10px',
+                  padding: '10px 12px',
+                  color: '#e2e8f0',
+                  fontSize: '0.82rem',
+                  fontWeight: 700
+                }}
+              >
+                <option value="ALL">All Hazard Manuals (8 SOPs)</option>
+                <option value="CYCLONE">IMD Cyclone SOPs</option>
+                <option value="FLOOD">NDMA Flood & Urban SOPs</option>
+                <option value="STORM_SURGE">INCOIS Storm Surge SOPs</option>
+                <option value="ELECTRICAL_SAFETY">CEA Electrical Isolation SOPs</option>
+              </select>
+              <button
+                onClick={() => handleRunSopRagQuery()}
+                disabled={isQueryingRag}
+                style={{
+                  background: '#10b981',
+                  color: '#052e16',
+                  border: 'none',
+                  borderRadius: '10px',
+                  padding: '10px 18px',
+                  fontSize: '0.84rem',
+                  fontWeight: 800,
+                  cursor: 'pointer'
+                }}
+              >
+                {isQueryingRag ? 'Retrieving SOPs...' : '🔍 Retrieve Official SOPs'}
+              </button>
+            </div>
+
+            {ragResult && (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '14px' }}>
+                {(ragResult.retrievedDocuments || []).map((doc) => (
+                  <div
+                    key={doc.docId}
+                    style={{
+                      background: '#0f172a',
+                      border: '1px solid #1e293b',
+                      borderTop: '3px solid #10b981',
+                      borderRadius: '12px',
+                      padding: '16px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '8px'
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: '0.73rem', fontWeight: 800, color: '#34d399', background: 'rgba(16, 185, 129, 0.12)', padding: '2px 8px', borderRadius: '6px' }}>
+                        {doc.docId}
+                      </span>
+                      <span style={{ fontSize: '0.73rem', fontWeight: 700, color: '#38bdf8' }}>
+                        RAG Score: {Math.round((doc.similarityScore || 0.85) * 100)}%
+                      </span>
+                    </div>
+                    <div style={{ fontSize: '0.9rem', fontWeight: 800, color: '#f8fafc', lineHeight: 1.35 }}>
+                      {doc.manualTitle}
+                    </div>
+                    <div style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 600 }}>
+                      {doc.authority} • {doc.sectionRef}
+                    </div>
+                    <ul style={{ margin: '4px 0 0', paddingLeft: '16px', fontSize: '0.79rem', color: '#cbd5e1', lineHeight: 1.5 }}>
+                      {(doc.officialDirectives || []).slice(0, 2).map((dir, dIdx) => (
+                        <li key={dIdx} style={{ marginBottom: '4px' }}>{dir}</li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       )}
 

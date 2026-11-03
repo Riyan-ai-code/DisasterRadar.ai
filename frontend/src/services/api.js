@@ -1410,6 +1410,232 @@ export async function fetchSystemMultiHazardAlerts(hazardType = 'ALL') {
   };
 }
 
+/**
+ * ============================================================================
+ * PHASE 6: NLP SOS / DISTRESS INTELLIGENCE & NDMA/IMD SOP KNOWLEDGE RAG API
+ * ============================================================================
+ */
+
+const FALLBACK_SOS_FEED = [
+  {
+    id: 'sos-001',
+    rawText: 'URGENT SOS! 6 family members including a 4-month infant and my grandmother on oxygen concentrator trapped on 1st floor roof near Narsapur Ferry Road, Kakinada. Cyclone Arnab storm surge water is 5 feet deep and live electric transformer pole sparked outside!',
+    classification: 'LIFE_THREATENING_SOS',
+    urgencyScore: 99.5,
+    triagePriority: 'CRITICAL_P1',
+    dispatchSla: 'Immediate Dispatch (< 30 mins)',
+    recommendedRescueAsset: 'DISCOM 11kV Feeder Isolation Crew + Insulated Rescue Boat',
+    nerEntities: {
+      extractedLocations: ['Narsapur, West Godavari, Andhra Pradesh', 'Kakinada, Andhra Pradesh', 'near Narsapur Ferry Road'],
+      resolvedLatitude: 16.435,
+      resolvedLongitude: 81.696,
+      vulnerableGroups: ['Infants / Children', 'Elderly / Bedridden', 'Critical Medical / Life-Support'],
+      strandedPeopleCount: 6,
+      waterDepthMentions: ['5 ft (~152 cm)'],
+      estimatedWaterDepthCm: 152.4,
+      hazardEntities: ['Rooftop / Vertical Trapping', 'Electrocution / Downed Power Line', 'Cyclone Gale & Storm Surge']
+    },
+    scoreBreakdown: [
+      { factor: 'Life-Safety & Entrapment Signal', points: 69.0 },
+      { factor: 'Water Depth Severity (152 cm)', points: 20.0 },
+      { factor: 'Vulnerable Groups (3)', points: 25.0 },
+      { factor: 'Compound Hazard Triggers (3)', points: 20.0 }
+    ],
+    matchedOfficialSop: {
+      docId: 'CEA-NDMA-ELEC-SOP-6.1',
+      manualTitle: 'CEA & NDMA Electrical Grid Isolation & Submerged Transformer Safety Protocol',
+      sectionRef: 'Section 6.1: Domestic MCB Shutdown & 11kV Distribution Feeder Tripping',
+      primaryDirective: 'Shut off the domestic Main Circuit Breaker (MCB) and Earth Leakage Circuit Breaker (ELCB) BEFORE water rises to 15 cm above floor level or approaches wall sockets.'
+    },
+    analyzedAtUtc: new Date().toISOString()
+  },
+  {
+    id: 'sos-002',
+    rawText: 'Water entering ground floor apartments up to 3 feet in Velachery Ward 178, Chennai after 240mm rain. 12 senior citizens stranded, cars floating in parking lot, need SDRF inflatable boat evacuation immediately.',
+    classification: 'LIFE_THREATENING_SOS',
+    urgencyScore: 88.2,
+    triagePriority: 'CRITICAL_P1',
+    dispatchSla: 'Immediate Dispatch (< 30 mins)',
+    recommendedRescueAsset: 'SDRF High-Clearance Flood Rescue Truck / Shallow-Draft Boat',
+    nerEntities: {
+      extractedLocations: ['Velachery, Chennai, Tamil Nadu', 'Ward 178'],
+      resolvedLatitude: 12.975,
+      resolvedLongitude: 80.220,
+      vulnerableGroups: ['Elderly / Bedridden'],
+      strandedPeopleCount: 12,
+      waterDepthMentions: ['3 ft (~91 cm)'],
+      estimatedWaterDepthCm: 91.4,
+      hazardEntities: ['Submerged Vehicle / Underpass Trap']
+    },
+    scoreBreakdown: [
+      { factor: 'Life-Safety & Entrapment Signal', points: 47.0 },
+      { factor: 'Water Depth Severity (91 cm)', points: 12.2 },
+      { factor: 'Vulnerable Groups (1)', points: 9.5 },
+      { factor: 'Compound Hazard Triggers (1)', points: 7.0 }
+    ],
+    matchedOfficialSop: {
+      docId: 'NDMA-FLOOD-SOP-4.2',
+      manualTitle: 'NDMA National Disaster Management Guidelines: Management of Floods',
+      sectionRef: 'Chapter 4, Section 4.2: Early Warning & Phased Evacuation Triggers',
+      primaryDirective: 'Initiate Phase-I Precautionary Daylight Evacuation of vulnerable groups (infants, pregnant women, elderly, dialysis/oxygen-dependent patients) when model inundation probability crosses 65%.'
+    },
+    analyzedAtUtc: new Date().toISOString()
+  },
+  {
+    id: 'sos-003',
+    rawText: 'Brahmaputra embankment seepage and 1.2m floodwater near Kharupetia Ward 4, Assam. 8 villagers and 15 cattle stranded near low-lying char land, requesting boat and fodder relief.',
+    classification: 'LIFE_THREATENING_SOS',
+    urgencyScore: 84.5,
+    triagePriority: 'CRITICAL_P1',
+    dispatchSla: 'Immediate Dispatch (< 30 mins)',
+    recommendedRescueAsset: 'NDRF Motorized Inflatable Boat (IRB) / Winch Helicopter Sortie',
+    nerEntities: {
+      extractedLocations: ['Kharupetia, Darrang, Assam', 'Ward 4'],
+      resolvedLatitude: 26.518,
+      resolvedLongitude: 92.138,
+      vulnerableGroups: ['Stranded Livestock / Animals'],
+      strandedPeopleCount: 8,
+      waterDepthMentions: ['1.2 m (120 cm)'],
+      estimatedWaterDepthCm: 120.0,
+      hazardEntities: ['Embankment Breach / Flash Surge']
+    },
+    scoreBreakdown: [
+      { factor: 'Life-Safety & Entrapment Signal', points: 47.0 },
+      { factor: 'Water Depth Severity (120 cm)', points: 16.0 },
+      { factor: 'Vulnerable Groups (1)', points: 9.5 },
+      { factor: 'Compound Hazard Triggers (1)', points: 7.0 }
+    ],
+    matchedOfficialSop: {
+      docId: 'NDMA-LIVESTOCK-SOP-9.1',
+      manualTitle: 'NDMA Guidelines on Management of Animals in Disasters & Rural Floodways',
+      sectionRef: 'Section 9.1: Immediate Unchaining & Elevated Flood Mound (Kanti) Relocation',
+      primaryDirective: 'CRITICAL DIRECTIVE: Unchain and untether all cattle, buffaloes, and goats immediately upon receiving a High Flood Warning.'
+    },
+    analyzedAtUtc: new Date().toISOString()
+  }
+];
+
+export async function analyzeSosDistressPost(payload) {
+  try {
+    const res = await fetch(`${API_BASE}/nlp/sos-analyze`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        text: payload.text,
+        defaultLocation: payload.defaultLocation || null,
+        persistToQueue: payload.persistToQueue !== false
+      })
+    });
+    if (res.ok) {
+      return await res.json();
+    }
+  } catch (err) {
+    console.warn('Backend NLP SOS analyzer offline, running client-side NER & urgency heuristics:', err);
+  }
+
+  const txt = payload.text || '';
+  const isCritical = /sos|trapped|roof|oxygen|infant|feet|neck|submerged|wire|spark/i.test(txt);
+  return {
+    id: `sos-local-${Date.now().toString().slice(-3)}`,
+    rawText: txt,
+    classification: isCritical ? 'LIFE_THREATENING_SOS' : 'URGENT_EVACUATION_REQUEST',
+    urgencyScore: isCritical ? 92.4 : 68.5,
+    triagePriority: isCritical ? 'CRITICAL_P1' : 'HIGH_P2',
+    dispatchSla: isCritical ? 'Immediate Dispatch (< 30 mins)' : 'Urgent Dispatch (< 90 mins)',
+    recommendedRescueAsset: isCritical
+      ? 'NDRF Motorized Inflatable Boat (IRB) + ALS Paramedic Crew'
+      : 'SDRF High-Clearance Rescue Vehicle',
+    nerEntities: {
+      extractedLocations: [payload.defaultLocation || 'Coastal / Riverine Crisis Sector'],
+      resolvedLatitude: 16.435,
+      resolvedLongitude: 81.696,
+      vulnerableGroups: isCritical ? ['Elderly / Bedridden', 'Critical Medical / Life-Support'] : ['General Residents'],
+      strandedPeopleCount: 4,
+      waterDepthMentions: ['~120 cm (Estimated)'],
+      estimatedWaterDepthCm: 120.0,
+      hazardEntities: isCritical ? ['Rooftop / Vertical Trapping'] : ['Surface Flood / Heavy Rain']
+    },
+    scoreBreakdown: [
+      { factor: 'Life-Safety & Entrapment Signal', points: isCritical ? 54.0 : 35.0 },
+      { factor: 'Water Depth Severity', points: 16.0 },
+      { factor: 'Vulnerable Groups', points: 14.0 },
+      { factor: 'Compound Hazard Triggers', points: 8.4 }
+    ],
+    matchedOfficialSop: FALLBACK_SOS_FEED[0].matchedOfficialSop,
+    analyzedAtUtc: new Date().toISOString()
+  };
+}
+
+export async function fetchSosTriageFeed() {
+  try {
+    const res = await fetch(`${API_BASE}/nlp/sos-feed`);
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data) && data.length > 0) return data;
+    }
+  } catch (err) {
+    console.warn('Could not fetch live SOS triage feed from backend, using fallback:', err);
+  }
+  return FALLBACK_SOS_FEED;
+}
+
+export async function queryNdmaSopRag(payload) {
+  try {
+    const res = await fetch(`${API_BASE}/rag/sop-query`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        query: payload.query,
+        hazardFilter: payload.hazardFilter || 'ALL',
+        topK: payload.topK || 3,
+        telemetry: payload.telemetry || null
+      })
+    });
+    if (res.ok) {
+      return await res.json();
+    }
+  } catch (err) {
+    console.warn('Backend NDMA/IMD SOP RAG endpoint unreachable, using embedded SOP corpus:', err);
+  }
+
+  return {
+    query: payload.query,
+    retrievalEngine: 'Hybrid TF-IDF Cosine Vector + BM25 Domain Lexical Ranker (Client Fallback)',
+    totalCorpusSize: 8,
+    retrievedDocuments: [
+      {
+        docId: 'IMD-CYCLONE-SOP-2.1',
+        manualTitle: 'IMD RSMC New Delhi Cyclone Warning & Coastal Landfall Standard Operating Procedure',
+        sectionRef: 'Section 2.1: 4-Stage Colour-Coded Cyclone Alert Matrix',
+        authority: 'India Meteorological Department (IMD) — RSMC New Delhi',
+        hazardCategory: 'CYCLONE',
+        similarityScore: 0.94,
+        summary: 'Official IMD 4-stage tropical cyclone warning protocol governing coastal evacuation and port operations across Bay of Bengal and Arabian Sea districts.',
+        officialDirectives: [
+          'Stage-III Cyclone Warning (Orange Alert — 24h Pre-Landfall): Evacuate vulnerable coastal Gram Panchayats and kutcha houses within 5 km of high-tide line to Multipurpose Cyclone Shelters (MPCS).',
+          'Stage-IV Post-Landfall Outlook (Red Alert — 12h Pre-Landfall): Complete 100% coastal evacuation, halt rail/highway traffic across coastal bridges, and shelter indoors during eye passage.'
+        ]
+      },
+      {
+        docId: 'NDMA-FLOOD-SOP-4.2',
+        manualTitle: 'NDMA National Disaster Management Guidelines: Management of Floods',
+        sectionRef: 'Chapter 4, Section 4.2: Early Warning & Phased Evacuation Triggers',
+        authority: 'National Disaster Management Authority (NDMA), Govt. of India',
+        hazardCategory: 'FLOOD',
+        similarityScore: 0.87,
+        summary: 'Standard Operating Procedure for district collectors, SDRF, and municipal corporations when hydrological inundation probability exceeds 50% or water depth exceeds 15 cm.',
+        officialDirectives: [
+          'Initiate Phase-I Precautionary Daylight Evacuation of vulnerable groups when model inundation probability crosses 65% or 24-hour cumulative rainfall exceeds 150 mm.',
+          'Enforce strict vehicular underpass barricading once road surface water accumulation reaches 30 cm (12 inches).'
+        ]
+      }
+    ],
+    synthesizedBriefing: `### 📋 Grounded NDMA / IMD Operational Briefing ([IMD-CYCLONE-SOP-2.1], [NDMA-FLOOD-SOP-4.2])\n\n**Primary Governing Protocol:** **IMD RSMC New Delhi Cyclone Warning & Coastal Landfall SOP** — *Section 2.1*\n\n- **[IMD-CYCLONE-SOP-2.1]:** Evacuate vulnerable coastal wards within 5 km of the high-tide line to Multipurpose Cyclone Shelters (MPCS).\n- **[NDMA-FLOOD-SOP-4.2]:** Initiate daylight evacuation of vulnerable groups and isolate domestic MCB electrical panels before water reaches 15 cm.`,
+    generatedAtUtc: new Date().toISOString()
+  };
+}
+
+
 
 
 

@@ -50,10 +50,9 @@
 | **Phase 2** | **AI Explainer & Evacuation Intelligence** | Project 7 (CO4 \| L6) audit fulfillment: interactive TreeSHAP local waterfall & global importance, counterfactual "What-If" simulation engine, and NDRF/SDRF shelter evacuation route planning. | **Completed** ✅ |
 | **Phase 3** | **Geospatial GIS Atlas & Telemetry** | Mira Bhayandar 5-tier vulnerability choropleth, rail corridors, storm outfalls, live hydrological telemetry streaming, and weather station monitoring. | **Completed** ✅ |
 | **Phase 4** | **Operational Dashboard & Dispatch Alerts** | Responsive React + Vite multi-view command center, real-time hazard bulletins, severity filtering (`Critical` to `Advisory`), incident reporting, and CSV dispatch exports. | **Completed** ✅ |
-| **Phase 5** | **NLP & Social Disaster Intelligence** | Social media SOS / distress post classification, Named Entity Recognition (NER) for extracting stranded victim locations, and automated urgency scoring. | *Next* 🔄 |
-| **Phase 6** | **GenAI & Disaster Knowledge RAG** | Vector database (ChromaDB) indexing official disaster management SOPs & flood manuals, powered by an LLM Disaster Assistant for automated incident briefing. | *Planned* ⏳ |
-| **Phase 7** | **Autonomous Agentic AI Orchestration** | Multi-agent coordination (Ingestion Agent, Hydrodynamic Predictor Agent, GIS Routing Agent, Dispatcher Agent) with tool-calling and self-correction. | *Planned* ⏳ |
-| **Phase 8** | **Production MLOps & Continuous Learning** | Docker containerization, automated model drift detection, automated retraining pipelines, and Prometheus/Grafana system health telemetry. | *Planned* ⏳ |
+| **Phase 5** | **Cyclone Tracking & Compound Flood Risk Engine** | Live North Indian Ocean (Bay of Bengal & Arabian Sea) cyclone tracking, IMD 3-min wind scale, RSMC uncertainty cone GIS, 28-district coastal exposure matrix, historical cyclone replay (including *Cyclone Arnab*, *Michaung*, *Amphan*, *Fani*), and validated Cyclone-to-Flood ensemble bridge. | **Completed** ✅ |
+| **Phase 6** | **NLP SOS Intelligence & NDMA/IMD SOP Knowledge RAG** | Social media SOS / distress post classification (`LIFE_THREATENING_SOS` to `LOW_P4`), Named Entity Recognition (NER) for extracting stranded victim locations & GPS coordinates, automated 0–100 urgency scoring, and Hybrid TF-IDF + BM25 RAG indexing official NDMA/IMD/INCOIS/NDRF SOP manuals. | **Completed** ✅ |
+| **Phase 7** | **Production MLOps & Continuous Learning** | Docker containerization, automated model drift detection, automated retraining pipelines, and Prometheus/Grafana system health telemetry. | *Planned* ⏳ |
 
 ---
 

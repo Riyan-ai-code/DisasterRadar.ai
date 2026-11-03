@@ -172,3 +172,45 @@ def test_multi_hazard_alerts_aggregation_and_filtering():
     assert all("CYCLONE" in a.hazardType for a in cyclone_only.alerts)
 
 
+def test_phase6_nlp_sos_classifier_and_ner_extractor():
+    from services.nlp_rag_engine import (
+        classify_sos_distress_post,
+        extract_disaster_ner_entities,
+        get_sos_triage_feed,
+        retrieve_sop_knowledge_rag
+    )
+
+    sample_sos = (
+        "URGENT SOS! 6 family members including a 4-month infant and grandmother on oxygen "
+        "trapped on roof near Narsapur, Kakinada. Cyclone Arnab water is 5 feet deep and live wire sparked!"
+    )
+    ner = extract_disaster_ner_entities(sample_sos)
+    assert any("Narsapur" in loc or "Kakinada" in loc for loc in ner["extractedLocations"])
+    assert ner["estimatedWaterDepthCm"] >= 150.0
+    assert ner["strandedPeopleCount"] == 6
+    assert "Infants / Children" in ner["vulnerableGroups"]
+    assert "Critical Medical / Life-Support" in ner["vulnerableGroups"]
+    assert "Rooftop / Vertical Trapping" in ner["hazardEntities"]
+
+    classified = classify_sos_distress_post(sample_sos)
+    assert classified["classification"] == "LIFE_THREATENING_SOS"
+    assert classified["triagePriority"] == "CRITICAL_P1"
+    assert classified["urgencyScore"] >= 85.0
+    assert classified["matchedOfficialSop"] is not None
+
+    feed = get_sos_triage_feed()
+    assert len(feed) >= 4
+    assert feed[0]["urgencyScore"] >= feed[-1]["urgencyScore"]
+
+    rag = retrieve_sop_knowledge_rag(
+        query="Cyclone storm surge coastal evacuation and electrical transformer isolation",
+        hazard_filter="ALL",
+        top_k=3
+    )
+    assert rag["totalCorpusSize"] >= 8
+    assert len(rag["retrievedDocuments"]) == 3
+    assert rag["retrievedDocuments"][0]["similarityScore"] >= rag["retrievedDocuments"][1]["similarityScore"]
+    assert "Grounded NDMA / IMD Operational Briefing" in rag["synthesizedBriefing"]
+
+
+

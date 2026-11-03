@@ -31,7 +31,16 @@ from models.schemas import (
     CycloneDetailResponse,
     CoastalExposureResponse,
     CompoundFloodRiskRequest,
-    CompoundFloodRiskResponse
+    CompoundFloodRiskResponse,
+    SosAnalyzeRequest,
+    SosAnalysisResponse,
+    SopRagQueryRequest,
+    SopRagQueryResponse
+)
+from services.nlp_rag_engine import (
+    analyze_and_record_sos_post,
+    get_sos_triage_feed,
+    retrieve_sop_knowledge_rag
 )
 from services.cyclone_ingestion import (
     get_active_nio_cyclones_status,
@@ -965,6 +974,64 @@ def compute_compound_cyclone_flood_risk(request: CompoundFloodRiskRequest):
     if not result:
         raise HTTPException(status_code=404, detail=f"Cyclone '{request.cycloneId}' not found in registry")
     return result
+
+
+# ==============================================================================
+# PHASE 6: NLP SOS / DISTRESS INTELLIGENCE & NDMA/IMD SOP KNOWLEDGE RAG ENDPOINTS
+# ==============================================================================
+
+@app.post("/api/nlp/sos-analyze", response_model=SosAnalysisResponse)
+def analyze_sos_post_endpoint(request: SosAnalyzeRequest):
+    """
+    Phase 6 NLP Distress Intelligence:
+    Classifies an incoming SOS / social media distress post, extracts stranded locations,
+    GPS coordinates, water depths (cm), vulnerable groups, and hazard triggers via NER,
+    computes an automated 0-100 urgency score, and links the matching official NDMA/IMD SOP.
+    """
+    if not request.text or not request.text.strip():
+        raise HTTPException(status_code=400, detail="SOS message text cannot be empty")
+    try:
+        return analyze_and_record_sos_post(
+            text=request.text.strip(),
+            default_location=request.defaultLocation,
+            persist_to_queue=request.persistToQueue
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/nlp/sos-feed", response_model=List[SosAnalysisResponse])
+def get_live_sos_triage_feed_endpoint():
+    """
+    Returns the live prioritized SOS / Distress Triage Dispatch Queue sorted by
+    automated urgency score (CRITICAL_P1 first).
+    """
+    try:
+        return get_sos_triage_feed()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/rag/sop-query", response_model=SopRagQueryResponse)
+def query_ndma_imd_sop_rag_endpoint(request: SopRagQueryRequest):
+    """
+    Phase 6 Disaster Knowledge RAG:
+    Performs Hybrid TF-IDF Cosine + BM25 lexical vector retrieval over official
+    NDMA, IMD RSMC New Delhi, INCOIS, and NDRF Standard Operating Procedures (SOPs)
+    and synthesizes an Incident Commander operational briefing.
+    """
+    if not request.query or not request.query.strip():
+        raise HTTPException(status_code=400, detail="RAG query cannot be empty")
+    try:
+        return retrieve_sop_knowledge_rag(
+            query=request.query.strip(),
+            hazard_filter=request.hazardFilter,
+            top_k=request.topK,
+            telemetry=request.telemetry
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 
 @app.get("/api/download/apk")

@@ -1,0 +1,122 @@
+[
+  {
+    "doc_id": "NDMA-FLOOD-SOP-4.2",
+    "manual_title": "NDMA National Disaster Management Guidelines: Management of Floods",
+    "section_ref": "Section 4.2 & 7.1 — Early Warning, Embankment Breach & Floodplain Evacuation",
+    "authority": "National Disaster Management Authority (NDMA), Govt. of India",
+    "hazard_category": "FLOOD",
+    "keywords": ["flood", "river", "embankment", "breach", "inundation", "cwc", "danger mark", "evacuation", "relief camp", "boat", "brahmaputra", "ganga"],
+    "summary": "Standard operating procedures when river gauges cross Warning Level (WL) or Danger Level (DL), or when 24-hour rainfall exceeds 150 mm in low-lying alluvial plains.",
+    "official_directives": [
+      "Trigger Stage-1 (Yellow) alert when river water level reaches within 1.0m of Danger Level; pre-position NDRF/SDRF inflatable motorized boats (IRBs) at block headquarters.",
+      "Trigger Stage-2 (Orange) mandatory lateral evacuation of vulnerable groups (infants, pregnant women, senior citizens, disabled) to designated flood shelters above the 100-year HFL contour.",
+      "Inspect earthen river embankments (bunds) every 4 hours for piping, seepage, or toe erosion; deploy geo-textile sandbag ring-bunds immediately upon detecting boils.",
+      "Prohibit all vehicular movement across submersible causeways and bridges once water overflows the deck by 15 cm (6 inches)."
+    ]
+  },
+  {
+    "doc_id": "IMD-CYCLONE-SOP-2.1",
+    "manual_title": "IMD RSMC New Delhi Cyclone Warning & 4-Stage Coastal Alert Protocol",
+    "section_ref": "Section 2.1 & 5.4 — Pre-Cyclone Watch, Yellow Alert, Orange Warning & Red Post-Landfall Outlook",
+    "authority": "India Meteorological Department (IMD RSMC New Delhi)",
+    "hazard_category": "CYCLONE",
+    "keywords": ["cyclone", "vscs", "scs", "esCS", "sucs", "landfall", "wind", "gale", "imd", "bay of bengal", "arabian sea", "fishermen", "port", "arnab", "michaung", "remal"],
+    "summary": "Official 4-stage color-coded cyclone warning timeline and marine/coastal operational actions for North Indian Ocean tropical cyclones.",
+    "official_directives": [
+      "Stage-1 Pre-Cyclone Watch (72 hours prior): Issue early bulletin to Chief Secretaries and Maritime Boards; advise deep-sea fishing vessels to return to harbor immediately.",
+      "Stage-2 Cyclone Alert / Yellow (48 hours prior): Broadcast hourly coastal bulletins; initiate preparation of Multipurpose Cyclone Shelters (MPCS) with 7-day dry rations, drinking water, and DG gensets.",
+      "Stage-3 Cyclone Warning / Orange (24 hours prior): Execute 100% evacuation of kutcha houses and low-lying coastal Gram Panchayats within 10 km of shoreline; suspend rail, port, and aviation operations along the landfall cone.",
+      "Stage-4 Post-Landfall Outlook / Red (12 hours prior to landfall & during passage): Enforce strict indoor shelter lock-in during eye passage (warn citizens not to step outdoors during the temporary calm inside the cyclone eye)."
+    ]
+  },
+  {
+    "doc_id": "INCOIS-SURGE-SOP-3.3",
+    "manual_title": "INCOIS & NDMA Coastal Storm Surge & Estuarine Tidal Backwater Manual",
+    "section_ref": "Section 3.3 — Storm Surge Inundation Envelopes & Outfall Sluice Gate Operations",
+    "authority": "Indian National Centre for Ocean Information Services (INCOIS) & NDMA",
+    "hazard_category": "STORM_SURGE",
+    "keywords": ["surge", "storm surge", "tide", "high tide", "estuary", "creek", "backwater", "coastal", "saline", "sluice", "sundarbans", "kakinada", "narsapur", "bapatla"],
+    "summary": "Operational protocol for compound coastal flooding where cyclonic onshore winds coincide with astronomical high tide, impeding river and urban gravity drainage.",
+    "official_directives": [
+      "Pre-drain coastal retention ponds and urban stormwater canals during the low-tide window 12–18 hours prior to projected cyclone landfall.",
+      "Close tidal regulator sluice gates and backflow flap valves 2 hours before astronomical high tide to prevent saline sea-surge ingress into freshwater canals and agricultural polders.",
+      "Evacuate all settlements below 5.0m Mean Sea Level (MSL) within the projected 34-knot onshore wind quadrant due to bathymetric surge amplification.",
+      "Seal domestic borewell casing heads with watertight neoprene caps prior to surge arrival to prevent aquifer salinization."
+    ]
+  },
+  {
+    "doc_id": "NDRF-USAR-SOP-1.1",
+    "manual_title": "NDRF Standard Operating Procedure: Urban Flood Search, Rescue & Boat Triage",
+    "section_ref": "Section 1.1 & 3.2 — Priority Rescue Triage (P1–P4) & Rooftop/Air-Lift Operations",
+    "authority": "National Disaster Response Force (NDRF), Ministry of Home Affairs",
+    "hazard_category": "RESCUE_TRIAGE",
+    "keywords": ["trapped", "roof", "rooftop", "terrace", "attic", "rescue", "boat", "helicopter", "stranded", "sos", "help", "drowning", "neck deep", "chest deep", "ndrf"],
+    "summary": "Life-safety triage matrix for prioritizing boat and helicopter extraction during acute flash floods and cyclone inundation.",
+    "official_directives": [
+      "Priority-1 (CRITICAL_P1 — Immediate Dispatch <30 min): Citizens trapped on rooftops/vehicles/trees with water rising above chest/ground-floor ceiling, life-support medical patients (dialysis, oxygen, cardiac), infants, and pregnant women.",
+      "Priority-2 (HIGH_P2 — Urgent Dispatch <90 min): Ground-floor apartments with 0.5m–1.2m water ingress, stranded senior citizens, and structurally compromised kutcha dwellings.",
+      "Instruct rooftop-stranded citizens to NEVER enter enclosed attics without exterior hatches; signal USAR boats/aircraft using high-visibility orange fabric, mirrors, or 3 whistle blasts.",
+      "Maintain a minimum 3-meter clearance from submerged transformers, feeder pillars, and fallen overhead power lines during inflatable boat approach."
+    ]
+  },
+  {
+    "doc_id": "CEA-NDMA-ELEC-SOP-6.1",
+    "manual_title": "CEA & NDMA Electrical Grid Isolation & Substation Flood Safety Protocol",
+    "section_ref": "Section 6.1 — Preventive Feeder De-energization & Domestic MCB Shutdown",
+    "authority": "Central Electricity Authority (CEA) & State DISCOMs",
+    "hazard_category": "ELECTRICAL_UTILITY",
+    "keywords": ["electric", "electricity", "wire", "live wire", "pole", "transformer", "shock", "electrocution", "mcb", "breaker", "power", "short circuit", "spark", "substation"],
+    "summary": "Mandatory electrical isolation procedures to prevent fatal water electrification during urban waterlogging and cyclonic windfalls.",
+    "official_directives": [
+      "Household Level: Switch OFF the Main Circuit Breaker (MCB) and ELCB/RCCB immediately before rising floodwater reaches 15 cm (below wall socket height). Never touch electrical switchgear while standing on wet floors.",
+      "DISCOM Feeder Level: De-energize 11kV/33kV distribution transformers and pillar boxes when surrounding water depth reaches 30 cm above plinth level or when wind speeds exceed 75 km/h.",
+      "Treat all downed overhead conductors and submerged street-light poles as LIVE; establish a 10-meter exclusion zone until DISCOM line staff verify grounding.",
+      "Do not re-energize flooded residential wiring until insulation resistance (Megger test) and earth continuity are certified by a licensed electrician."
+    ]
+  },
+  {
+    "doc_id": "MOHUA-URBAN-SOP-5.2",
+    "manual_title": "MoHUA Urban Flooding Standard Operating Procedure: Pluvial Drainage & Underpasses",
+    "section_ref": "Section 5.2 — Underpass Barricading, Dewatering Pump Deployment & Traffic Diversion",
+    "authority": "Ministry of Housing and Urban Affairs (MoHUA), Govt. of India",
+    "hazard_category": "URBAN_DRAINAGE",
+    "keywords": ["underpass", "subway", "waterlogging", "drain", "nalla", "culvert", "traffic", "car", "vehicle", "stalled", "basement", "parking", "pump"],
+    "summary": "Municipal command room protocol for extreme convective cloudbursts (>50 mm/hour) and urban stormwater surcharge.",
+    "official_directives": [
+      "Automatically close and barricade all road underpasses and rail subways when water depth reaches 25 cm; activate red LED flood-depth gauges.",
+      "Vehicle Escape Rule: 30 cm (12 inches) of moving water floats passenger cars; 60 cm (24 inches) sweeps away SUVs and trucks. If stalled, unbuckle immediately, roll down or break side window, climb onto car roof, and dial 112.",
+      "Prohibit entry into underground basement parking lots during Red/Orange rainfall alerts; deploy mobile high-head diesel dewatering pumps at chronic depression sumps.",
+      "Clear solid waste and plastic choke points from storm-drain trash racks every 2 hours during active monsoon spells."
+    ]
+  },
+  {
+    "doc_id": "NDMA-MED-SOP-8.4",
+    "manual_title": "NDMA Guidelines: Medical Preparedness, Chronic Care & Post-Flood Epidemic Control",
+    "section_ref": "Section 8.4 — Dialysis/Oxygen Continuity, Snakebite Anti-Venom & Water Chlorination",
+    "authority": "NDMA & Ministry of Health and Family Welfare (MoHFW)",
+    "hazard_category": "MEDICAL_TRIAGE",
+    "keywords": ["medical", "hospital", "oxygen", "dialysis", "insulin", "pregnant", "baby", "infant", "elderly", "bedridden", "medicine", "snake", "snakebite", "cholera", "leptospirosis"],
+    "summary": "Emergency medical triage, life-support continuity, and post-inundation infectious disease prevention protocols.",
+    "official_directives": [
+      "Maintain a ward-wise registry of dialysis patients, oxygen-dependent patients, and full-term pregnant women (EDD within 15 days) for pre-emptive ambulance transfer 24 hours before peak hazard.",
+      "Stock Polyvalent Anti-Snake Venom (ASV), Doxycycline (leptospirosis prophylaxis), ORS packets, and Halogen chlorine tablets at all Primary Health Centres (PHCs) and relief camps.",
+      "Mandate super-chlorination of municipal and camp drinking water to maintain 0.5–1.0 ppm free residual chlorine; prohibit consumption of unboiled flood-exposed well water.",
+      "Provide 14-day waterproof chronic medication kits (insulin in insulated cold packs, anti-hypertensives, cardiac drugs) to evacuated senior citizens."
+    ]
+  },
+  {
+    "doc_id": "NDMA-LIVESTOCK-SOP-9.1",
+    "manual_title": "NDMA & DAHD Guidelines: Disaster Management for Livestock, Cattle & Companion Animals",
+    "section_ref": "Section 9.1 — Untethering Mandate, Elevated Flood Mounds (Kanti) & Fodder Banks",
+    "authority": "NDMA & Department of Animal Husbandry and Dairying (DAHD)",
+    "hazard_category": "LIVESTOCK",
+    "keywords": ["cattle", "cow", "buffalo", "livestock", "animal", "pet", "dog", "goat", "sheep", "shed", "fodder", "kanti", "tethered", "chained"],
+    "summary": "Mandatory life-safety rules for preventing mass livestock mortality during riverine floods and coastal cyclone surges.",
+    "official_directives": [
+      "CRITICAL RULE: Immediately UNCHAIN and untether all cattle, buffaloes, and goats prior to floodwater ingress or evacuation. Tethered animals drown rapidly, whereas free livestock can swim to high ground.",
+      "Herd livestock to elevated community earthen flood mounds (Kanti) or high highway embankments 12 hours ahead of river crest or cyclone landfall.",
+      "Store dry fodder, hay bales, and mineral mixtures on elevated bamboo platforms covered with waterproof tarpaulins to prevent fungal aflatoxin and rumen acidosis.",
+      "Conduct post-flood ring vaccination against Haemorrhagic Septicaemia (HS) and Black Quarter (BQ) across all affected veterinary blocks."
+    ]
+  }
+]

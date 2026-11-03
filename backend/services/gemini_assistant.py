@@ -3,6 +3,7 @@ import requests
 import json
 from typing import Dict, Any, List, Optional
 from config import settings
+from services.nlp_rag_engine import retrieve_sop_knowledge_rag
 
 # System instruction prompt grounding Gemini in life-safety flood protocols
 FLOOD_SYSTEM_PROMPT = """You are "FloodRisk Copilot", an advanced AI Flood Disaster & Evacuation Intelligence Assistant built for the FloodRisk AI Early Warning System.
@@ -168,13 +169,25 @@ def query_gemini_assistant(
 
     context_str = f"Active Flood Telemetry: Location={loc}, 24h Rain={r24}mm, 72h Rain={r72}mm, Risk={risk}, Inundation Probability={prob}%, Elevation={elev}m.\n\nUser Question: {prompt}"
 
+    # Retrieve top matching NDMA/IMD SOP documents via Phase 6 RAG engine
+    rag_context = retrieve_sop_knowledge_rag(query=prompt, top_k=2, telemetry=telemetry)
+    retrieved_sops = rag_context.get("retrievedDocuments", [])
+    sop_citation_footer = ""
+    if retrieved_sops:
+        top_sop = retrieved_sops[0]
+        sop_citation_footer = (
+            f"\n\n---\n📚 **Grounded NDMA/IMD SOP Citation (`{top_sop['docId']}` — {top_sop['sectionRef']}):**\n"
+            f"> *{top_sop['officialDirectives'][0]}*"
+        )
+
     if not key:
         return {
-            "source": "hydro_engine_local",
-            "model": "FloodRisk HydroNet 2.0 (Embedded)",
-            "response": generate_local_hydro_response(prompt, telemetry),
+            "source": "hydro_engine_local_rag",
+            "model": "FloodRisk HydroNet 2.0 + NDMA/IMD SOP RAG",
+            "response": generate_local_hydro_response(prompt, telemetry) + sop_citation_footer,
+            "retrievedSops": retrieved_sops,
             "status": "success",
-            "note": "Running via embedded hydrodynamic reasoning engine. Add GEMINI_API_KEY to your .env to enable live Google Gemini."
+            "note": "Running via embedded hydrodynamic reasoning + NDMA/IMD SOP Knowledge RAG engine."
         }
 
     # Attempt calling Google Gemini REST API
