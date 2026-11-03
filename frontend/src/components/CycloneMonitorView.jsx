@@ -498,7 +498,15 @@ export default function CycloneMonitorView({
   ];
 
   return (
-    <div style={{ padding: '20px 24px 40px', color: '#f8fafc', maxWidth: '1600px', margin: '0 auto' }}>
+    <div style={{
+      padding: '18px 20px 36px',
+      color: '#f8fafc',
+      width: '100%',
+      maxWidth: '100%',
+      minWidth: 0,
+      boxSizing: 'border-box',
+      overflowX: 'hidden'
+    }}>
       {/* TOP COMMAND HEADER */}
       <div style={{
         display: 'flex',
@@ -643,10 +651,14 @@ export default function CycloneMonitorView({
       {/* CYCLONE SELECTOR BAR */}
       <div style={{
         marginBottom: '18px',
-        padding: '14px 18px',
+        padding: '14px 16px',
         background: 'rgba(15, 23, 42, 0.85)',
         border: '1px solid rgba(255,255,255,0.08)',
-        borderRadius: '12px'
+        borderRadius: '12px',
+        width: '100%',
+        maxWidth: '100%',
+        minWidth: 0,
+        boxSizing: 'border-box'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px', flexWrap: 'wrap', gap: '8px' }}>
           <span style={{ fontSize: '0.76rem', fontWeight: 800, color: '#38bdf8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
@@ -659,7 +671,13 @@ export default function CycloneMonitorView({
           </span>
         </div>
 
-        <div style={{ display: 'flex', gap: '10px', overflowX: 'auto', paddingBottom: '4px' }}>
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fill, minmax(195px, 1fr))',
+          gap: '10px',
+          width: '100%',
+          minWidth: 0
+        }}>
           {(viewMode === 'live' && activeBasinData?.activeCyclones?.length > 0
             ? activeBasinData.activeCyclones
             : historicalList
@@ -671,35 +689,40 @@ export default function CycloneMonitorView({
                 key={item.id}
                 onClick={() => handleSelectCyclone(item.id)}
                 style={{
-                  minWidth: '215px',
+                  minWidth: 0,
+                  width: '100%',
                   textAlign: 'left',
-                  padding: '10px 14px',
+                  padding: '10px 12px',
                   borderRadius: '10px',
                   cursor: 'pointer',
                   background: isSelected ? 'rgba(30, 41, 59, 0.95)' : 'rgba(8, 12, 22, 0.65)',
                   border: isSelected ? `2px solid ${st.color}` : '1px solid rgba(255,255,255,0.08)',
                   color: '#f8fafc',
-                  transition: 'all 0.18s ease'
+                  transition: 'all 0.18s ease',
+                  boxSizing: 'border-box'
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
-                  <span style={{ fontWeight: 800, fontSize: '0.88rem' }}>🌀 {item.stormName}</span>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px', marginBottom: '4px' }}>
+                  <span style={{ fontWeight: 800, fontSize: '0.84rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    🌀 {item.stormName}
+                  </span>
                   <span style={{
-                    fontSize: '0.66rem',
+                    fontSize: '0.64rem',
                     fontWeight: 800,
-                    padding: '2px 6px',
+                    padding: '2px 5px',
                     borderRadius: '4px',
                     background: st.bg,
                     color: st.color,
-                    border: `1px solid ${st.border}`
+                    border: `1px solid ${st.border}`,
+                    flexShrink: 0
                   }}>
                     {item.imdCategory}
                   </span>
                 </div>
-                <div style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
+                <div style={{ fontSize: '0.7rem', color: '#94a3b8', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {item.basinFullName} • {item.seasonYear}
                 </div>
-                <div style={{ fontSize: '0.72rem', color: '#cbd5e1', marginTop: '4px', fontWeight: 600 }}>
+                <div style={{ fontSize: '0.7rem', color: '#cbd5e1', marginTop: '4px', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {item.maxSustainedWindKmh} km/h ({item.maxSustainedWindKt} kt) • {item.minCentralPressureHpa} hPa
                 </div>
               </button>
@@ -712,90 +735,97 @@ export default function CycloneMonitorView({
       {ev && (
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
-          gap: '14px',
-          marginBottom: '18px'
+          gridTemplateColumns: 'repeat(auto-fit, minmax(205px, 1fr))',
+          gap: '12px',
+          marginBottom: '18px',
+          width: '100%',
+          minWidth: 0
         }}>
           {/* Card 1: Official IMD Classification */}
           <div style={{
-            padding: '16px 18px',
+            padding: '14px 16px',
             borderRadius: '12px',
             background: 'rgba(15, 23, 42, 0.9)',
-            border: `1px solid ${activeStyle.border}`
+            border: `1px solid ${activeStyle.border}`,
+            minWidth: 0
           }}>
-            <div style={{ fontSize: '0.7rem', color: '#94a3b8', textTransform: 'uppercase', fontWeight: 700 }}>
+            <div style={{ fontSize: '0.68rem', color: '#94a3b8', textTransform: 'uppercase', fontWeight: 700 }}>
               Official IMD Classification
             </div>
-            <div style={{ fontSize: '1.15rem', fontWeight: 900, color: activeStyle.color, margin: '6px 0 4px' }}>
+            <div style={{ fontSize: '1.05rem', fontWeight: 900, color: activeStyle.color, margin: '6px 0 4px', lineHeight: 1.25 }}>
               {ev.imdClassification}
             </div>
-            <div style={{ fontSize: '0.75rem', color: '#cbd5e1' }}>
+            <div style={{ fontSize: '0.73rem', color: '#cbd5e1' }}>
               Basin: <strong>{ev.basinFullName} ({ev.basin})</strong> • {ev.seasonYear}
             </div>
           </div>
 
           {/* Card 2: Max Sustained Wind & Central Pressure */}
           <div style={{
-            padding: '16px 18px',
+            padding: '14px 16px',
             borderRadius: '12px',
             background: 'rgba(15, 23, 42, 0.9)',
-            border: '1px solid rgba(56, 189, 248, 0.22)'
+            border: '1px solid rgba(56, 189, 248, 0.22)',
+            minWidth: 0
           }}>
-            <div style={{ fontSize: '0.7rem', color: '#94a3b8', textTransform: 'uppercase', fontWeight: 700 }}>
+            <div style={{ fontSize: '0.68rem', color: '#94a3b8', textTransform: 'uppercase', fontWeight: 700 }}>
               Peak Sustained Wind & Central Pressure
             </div>
-            <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#f8fafc', margin: '6px 0 4px' }}>
-              {ev.maxSustainedWindKmh} km/h <span style={{ fontSize: '0.88rem', color: '#38bdf8' }}>({ev.maxSustainedWindKt} kt)</span>
+            <div style={{ fontSize: '1.15rem', fontWeight: 900, color: '#f8fafc', margin: '6px 0 4px' }}>
+              {ev.maxSustainedWindKmh} km/h <span style={{ fontSize: '0.84rem', color: '#38bdf8' }}>({ev.maxSustainedWindKt} kt)</span>
             </div>
-            <div style={{ fontSize: '0.75rem', color: '#cbd5e1' }}>
+            <div style={{ fontSize: '0.73rem', color: '#cbd5e1' }}>
               Central Pressure: <strong>{ev.minCentralPressureHpa} hPa</strong> (ΔP: {Math.max(0, Math.round(1013 - (ev.minCentralPressureHpa || 1000)))} hPa)
             </div>
           </div>
 
           {/* Card 3: Kinematics & Coastal Distance */}
           <div style={{
-            padding: '16px 18px',
+            padding: '14px 16px',
             borderRadius: '12px',
             background: 'rgba(15, 23, 42, 0.9)',
-            border: '1px solid rgba(56, 189, 248, 0.22)'
+            border: '1px solid rgba(56, 189, 248, 0.22)',
+            minWidth: 0
           }}>
-            <div style={{ fontSize: '0.7rem', color: '#94a3b8', textTransform: 'uppercase', fontWeight: 700 }}>
+            <div style={{ fontSize: '0.68rem', color: '#94a3b8', textTransform: 'uppercase', fontWeight: 700 }}>
               Kinematics & Coastal Proximity
             </div>
-            <div style={{ fontSize: '1.15rem', fontWeight: 900, color: '#f8fafc', margin: '6px 0 4px' }}>
+            <div style={{ fontSize: '1.08rem', fontWeight: 900, color: '#f8fafc', margin: '6px 0 4px' }}>
               {ev.movementDirectionCardinal} ({ev.movementDirectionDeg}°) @ {ev.movementSpeedKmh} km/h
             </div>
-            <div style={{ fontSize: '0.74rem', color: '#cbd5e1' }}>
+            <div style={{ fontSize: '0.72rem', color: '#cbd5e1', lineHeight: 1.35 }}>
               <strong>{ev.distanceToIndianCoastKm} km</strong> from {ev.nearestCoastalReference}
             </div>
           </div>
 
           {/* Card 4: XGBoost-SHIPS Rapid Intensification Index */}
           <div style={{
-            padding: '16px 18px',
+            padding: '14px 16px',
             borderRadius: '12px',
             background: 'rgba(15, 23, 42, 0.9)',
-            border: '1px solid rgba(245, 158, 11, 0.35)'
+            border: '1px solid rgba(245, 158, 11, 0.35)',
+            minWidth: 0
           }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: '0.7rem', color: '#fbbf24', textTransform: 'uppercase', fontWeight: 800 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '6px' }}>
+              <span style={{ fontSize: '0.68rem', color: '#fbbf24', textTransform: 'uppercase', fontWeight: 800 }}>
                 ML Rapid Intensification (RI)
               </span>
               <span style={{
-                fontSize: '0.62rem',
-                padding: '1px 6px',
+                fontSize: '0.6rem',
+                padding: '1px 5px',
                 borderRadius: '4px',
                 background: 'rgba(245, 158, 11, 0.15)',
                 color: '#fbbf24',
-                fontWeight: 700
+                fontWeight: 700,
+                flexShrink: 0
               }}>
                 XGBoost-SHIPS
               </span>
             </div>
-            <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#f8fafc', margin: '6px 0 4px' }}>
-              {trend?.riProbabilityPercent ?? 35.0}% <span style={{ fontSize: '0.82rem', color: '#fbbf24' }}>({trend?.riRiskTier || 'MODERATE'})</span>
+            <div style={{ fontSize: '1.15rem', fontWeight: 900, color: '#f8fafc', margin: '6px 0 4px' }}>
+              {trend?.riProbabilityPercent ?? 35.0}% <span style={{ fontSize: '0.78rem', color: '#fbbf24' }}>({trend?.riRiskTier || 'MODERATE'})</span>
             </div>
-            <div style={{ fontSize: '0.74rem', color: '#cbd5e1' }}>
+            <div style={{ fontSize: '0.72rem', color: '#cbd5e1' }}>
               24h ΔV: <strong>{trend?.windChange24hKt >= 0 ? `+${trend?.windChange24hKt}` : trend?.windChange24hKt} kt</strong> • 12h ΔP: <strong>{trend?.pressureChange12hHpa} hPa</strong>
             </div>
           </div>
@@ -805,16 +835,20 @@ export default function CycloneMonitorView({
       {/* MAIN TWO-COLUMN LAYOUT: INTERACTIVE TRAJECTORY MAP + INTENSITY & COMPOUND BRIDGE */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'minmax(0, 1.65fr) minmax(340px, 1fr)',
-        gap: '18px',
-        alignItems: 'start'
+        gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 420px), 1fr))',
+        gap: '16px',
+        alignItems: 'start',
+        width: '100%',
+        minWidth: 0
       }}>
         {/* LEFT COLUMN: INTERACTIVE LEAFLET TRAJECTORY & CONE OF UNCERTAINTY MAP */}
         <div style={{
           background: 'rgba(15, 23, 42, 0.9)',
           border: '1px solid rgba(56, 189, 248, 0.2)',
           borderRadius: '14px',
-          overflow: 'hidden'
+          overflow: 'hidden',
+          minWidth: 0,
+          width: '100%'
         }}>
           {/* Map Header & Layer Controls */}
           <div style={{
@@ -962,15 +996,18 @@ export default function CycloneMonitorView({
         </div>
 
         {/* RIGHT COLUMN: CHRONOLOGICAL TRACK LEDGER, RI SHAP ATTRIBUTION & MARITIME TELEMETRY */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', minWidth: 0, width: '100%' }}>
           {/* Panel 1: Chronological Observed & Official Forecast Positions */}
           <div style={{
             background: 'rgba(15, 23, 42, 0.9)',
             border: '1px solid rgba(56, 189, 248, 0.2)',
             borderRadius: '14px',
-            padding: '16px'
+            padding: '16px',
+            minWidth: 0,
+            width: '100%',
+            boxSizing: 'border-box'
           }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '6px', marginBottom: '10px' }}>
               <span style={{ fontSize: '0.84rem', fontWeight: 800, color: '#f8fafc' }}>
                 ⏱️ Track & Forecast Timeline ({allTimelinePoints.length} Points)
               </span>
@@ -979,8 +1016,8 @@ export default function CycloneMonitorView({
               </span>
             </div>
 
-            <div style={{ maxHeight: '245px', overflowY: 'auto', paddingRight: '4px' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.73rem' }}>
+            <div style={{ maxHeight: '245px', overflowY: 'auto', overflowX: 'auto', paddingRight: '4px', width: '100%' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.72rem' }}>
                 <thead>
                   <tr style={{ color: '#94a3b8', borderBottom: '1px solid rgba(255,255,255,0.08)', textAlign: 'left' }}>
                     <th style={{ padding: '6px 4px' }}>Type / Lead</th>
@@ -1004,27 +1041,27 @@ export default function CycloneMonitorView({
                       >
                         <td style={{ padding: '6px 4px', fontWeight: 700, color: isFcst ? '#fbbf24' : '#38bdf8' }}>
                           {isFcst ? `🎯 +${pt.forecastHour}h Fcst` : '✓ Observed'}
-                          <div style={{ fontSize: '0.64rem', color: '#64748b', fontWeight: 500 }}>
+                          <div style={{ fontSize: '0.63rem', color: '#64748b', fontWeight: 500 }}>
                             {pt.timestampUtc.replace('T', ' ').slice(0, 16)}
                           </div>
                         </td>
-                        <td style={{ padding: '6px 4px', color: '#e2e8f0' }}>
+                        <td style={{ padding: '6px 4px', color: '#e2e8f0', whiteSpace: 'nowrap' }}>
                           {pt.latitude.toFixed(1)}°N, {pt.longitude.toFixed(1)}°E
                         </td>
-                        <td style={{ padding: '6px 4px', fontWeight: 700, color: '#f8fafc' }}>
+                        <td style={{ padding: '6px 4px', fontWeight: 700, color: '#f8fafc', whiteSpace: 'nowrap' }}>
                           {pt.windSpeedKmh} km/h
-                          <span style={{ display: 'block', fontSize: '0.64rem', color: '#94a3b8' }}>
+                          <span style={{ display: 'block', fontSize: '0.63rem', color: '#94a3b8' }}>
                             ({pt.windSpeedKt} kt)
                           </span>
                         </td>
-                        <td style={{ padding: '6px 4px', color: '#cbd5e1' }}>
+                        <td style={{ padding: '6px 4px', color: '#cbd5e1', whiteSpace: 'nowrap' }}>
                           {pt.pressureHpa} hPa
                         </td>
                         <td style={{ padding: '6px 4px' }}>
                           <span style={{
                             padding: '2px 5px',
                             borderRadius: '4px',
-                            fontSize: '0.64rem',
+                            fontSize: '0.63rem',
                             fontWeight: 800,
                             background: st.bg,
                             color: st.color,
@@ -1047,9 +1084,12 @@ export default function CycloneMonitorView({
               background: 'rgba(15, 23, 42, 0.9)',
               border: '1px solid rgba(245, 158, 11, 0.25)',
               borderRadius: '14px',
-              padding: '16px'
+              padding: '16px',
+              minWidth: 0,
+              width: '100%',
+              boxSizing: 'border-box'
             }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '6px', marginBottom: '8px' }}>
                 <span style={{ fontSize: '0.84rem', fontWeight: 800, color: '#f8fafc' }}>
                   🧠 Rapid Intensification (RI) TreeSHAP Drivers
                 </span>
@@ -1064,7 +1104,7 @@ export default function CycloneMonitorView({
                   Experimental ML Diagnostic
                 </span>
               </div>
-              <p style={{ margin: '0 0 10px', fontSize: '0.72rem', color: '#94a3b8' }}>
+              <p style={{ margin: '0 0 10px', fontSize: '0.72rem', color: '#94a3b8', lineHeight: 1.4 }}>
                 Evaluates 24-hour rapid intensification potential (ΔV ≥ 30 kt / 55 km/h) from kinematic persistence, central pressure drop, and coastal land interaction:
               </p>
 
@@ -1077,11 +1117,12 @@ export default function CycloneMonitorView({
                       padding: '8px 10px',
                       borderRadius: '8px',
                       background: 'rgba(8, 12, 22, 0.65)',
-                      border: '1px solid rgba(255,255,255,0.06)'
+                      border: '1px solid rgba(255,255,255,0.06)',
+                      minWidth: 0
                     }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.73rem', marginBottom: '4px' }}>
-                        <span style={{ fontWeight: 700, color: '#e2e8f0' }}>{d.feature} ({d.value})</span>
-                        <span style={{ fontWeight: 800, color: isPos ? '#f97316' : '#10b981' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '4px', fontSize: '0.72rem', marginBottom: '4px' }}>
+                        <span style={{ fontWeight: 700, color: '#e2e8f0', wordBreak: 'break-word' }}>{d.feature} ({d.value})</span>
+                        <span style={{ fontWeight: 800, color: isPos ? '#f97316' : '#10b981', flexShrink: 0 }}>
                           {d.shapImpact >= 0 ? `+${d.shapImpact}` : d.shapImpact} ({d.direction})
                         </span>
                       </div>
@@ -1105,9 +1146,12 @@ export default function CycloneMonitorView({
             background: 'rgba(15, 23, 42, 0.9)',
             border: '1px solid rgba(56, 189, 248, 0.2)',
             borderRadius: '14px',
-            padding: '16px'
+            padding: '16px',
+            minWidth: 0,
+            width: '100%',
+            boxSizing: 'border-box'
           }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '6px', marginBottom: '10px' }}>
               <span style={{ fontSize: '0.84rem', fontWeight: 800, color: '#f8fafc' }}>
                 ⚓ Live Indian Coastal Observatory Telemetry
               </span>
@@ -1128,10 +1172,12 @@ export default function CycloneMonitorView({
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
+                    flexWrap: 'wrap',
+                    gap: '6px',
                     fontSize: '0.73rem'
                   }}
                 >
-                  <div>
+                  <div style={{ minWidth: 0 }}>
                     <div style={{ fontWeight: 700, color: '#f8fafc' }}>{st.stationName}</div>
                     <div style={{ fontSize: '0.66rem', color: '#94a3b8' }}>{st.basin} • {st.state}</div>
                   </div>
@@ -1155,21 +1201,26 @@ export default function CycloneMonitorView({
         <div style={{
           marginTop: '20px',
           display: 'grid',
-          gridTemplateColumns: 'minmax(0, 1.35fr) minmax(340px, 1fr)',
-          gap: '18px',
-          alignItems: 'start'
+          gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 420px), 1fr))',
+          gap: '16px',
+          alignItems: 'start',
+          width: '100%',
+          minWidth: 0
         }}>
           {/* LEFT: PHASE 3 COASTAL DISTRICT VULNERABILITY MATRIX */}
           <div style={{
             background: 'rgba(15, 23, 42, 0.92)',
             border: '1px solid rgba(56, 189, 248, 0.22)',
             borderRadius: '14px',
-            padding: '18px'
+            padding: '16px',
+            minWidth: 0,
+            width: '100%',
+            boxSizing: 'border-box'
           }}>
             <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ fontSize: '0.95rem', fontWeight: 800, color: '#f8fafc' }}>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+                  <span style={{ fontSize: '0.92rem', fontWeight: 800, color: '#f8fafc' }}>
                     🏖️ Coastal District Vulnerability & Exposure Assessment
                   </span>
                   <span style={{
@@ -1189,33 +1240,33 @@ export default function CycloneMonitorView({
                 </p>
               </div>
 
-              <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                <div style={{ padding: '6px 10px', borderRadius: '8px', background: 'rgba(239, 68, 68, 0.14)', border: '1px solid rgba(239, 68, 68, 0.35)', fontSize: '0.72rem' }}>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                <div style={{ padding: '5px 9px', borderRadius: '8px', background: 'rgba(239, 68, 68, 0.14)', border: '1px solid rgba(239, 68, 68, 0.35)', fontSize: '0.71rem' }}>
                   <span style={{ color: '#fca5a5' }}>Critical Districts: </span>
                   <strong style={{ color: '#ef4444' }}>{coastalExposure.criticalDistrictsCount}</strong>
                 </div>
-                <div style={{ padding: '6px 10px', borderRadius: '8px', background: 'rgba(249, 115, 22, 0.14)', border: '1px solid rgba(249, 115, 22, 0.35)', fontSize: '0.72rem' }}>
+                <div style={{ padding: '5px 9px', borderRadius: '8px', background: 'rgba(249, 115, 22, 0.14)', border: '1px solid rgba(249, 115, 22, 0.35)', fontSize: '0.71rem' }}>
                   <span style={{ color: '#fdba74' }}>High Exposure: </span>
                   <strong style={{ color: '#f97316' }}>{coastalExposure.highExposureDistrictsCount}</strong>
                 </div>
-                <div style={{ padding: '6px 10px', borderRadius: '8px', background: 'rgba(56, 189, 248, 0.14)', border: '1px solid rgba(56, 189, 248, 0.35)', fontSize: '0.72rem' }}>
+                <div style={{ padding: '5px 9px', borderRadius: '8px', background: 'rgba(56, 189, 248, 0.14)', border: '1px solid rgba(56, 189, 248, 0.35)', fontSize: '0.71rem' }}>
                   <span style={{ color: '#bae6fd' }}>Exposed Pop: </span>
                   <strong style={{ color: '#38bdf8' }}>{coastalExposure.totalExposedPopulationLakhs} Lakhs</strong>
                 </div>
               </div>
             </div>
 
-            <div style={{ maxHeight: '340px', overflowY: 'auto', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.07)' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.74rem' }}>
+            <div style={{ maxHeight: '340px', overflowY: 'auto', overflowX: 'auto', width: '100%', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.07)' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.72rem' }}>
                 <thead>
                   <tr style={{ background: 'rgba(8, 12, 22, 0.85)', color: '#94a3b8', textAlign: 'left', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-                    <th style={{ padding: '8px 10px' }}>Coastal District (State)</th>
-                    <th style={{ padding: '8px 8px' }}>Track Dist</th>
-                    <th style={{ padding: '8px 8px' }}>Est. Wind</th>
-                    <th style={{ padding: '8px 8px' }}>24h / 72h Rain</th>
-                    <th style={{ padding: '8px 8px' }}>DEM Elev</th>
-                    <th style={{ padding: '8px 8px' }}>Surge Index</th>
-                    <th style={{ padding: '8px 10px' }}>Exposure Tier</th>
+                    <th style={{ padding: '8px 8px' }}>Coastal District (State)</th>
+                    <th style={{ padding: '8px 6px' }}>Track Dist</th>
+                    <th style={{ padding: '8px 6px' }}>Est. Wind</th>
+                    <th style={{ padding: '8px 6px' }}>24h / 72h Rain</th>
+                    <th style={{ padding: '8px 6px' }}>DEM Elev</th>
+                    <th style={{ padding: '8px 6px' }}>Surge Index</th>
+                    <th style={{ padding: '8px 8px' }}>Exposure Tier</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1239,32 +1290,32 @@ export default function CycloneMonitorView({
                           transition: 'background 0.15s ease'
                         }}
                       >
-                        <td style={{ padding: '8px 10px', fontWeight: 700, color: '#f8fafc' }}>
+                        <td style={{ padding: '7px 8px', fontWeight: 700, color: '#f8fafc' }}>
                           {isSelected ? '▶ ' : ''}{d.districtName}
-                          <span style={{ display: 'block', fontSize: '0.65rem', color: '#94a3b8', fontWeight: 500 }}>
+                          <span style={{ display: 'block', fontSize: '0.64rem', color: '#94a3b8', fontWeight: 500 }}>
                             {d.state} • Pop: {d.populationLakhs}L
                           </span>
                         </td>
-                        <td style={{ padding: '8px 8px', color: '#e2e8f0', fontWeight: 700 }}>
+                        <td style={{ padding: '7px 6px', color: '#e2e8f0', fontWeight: 700, whiteSpace: 'nowrap' }}>
                           {d.minTrackDistanceKm} km
                         </td>
-                        <td style={{ padding: '8px 8px', color: '#fbbf24', fontWeight: 700 }}>
+                        <td style={{ padding: '7px 6px', color: '#fbbf24', fontWeight: 700, whiteSpace: 'nowrap' }}>
                           {d.estimatedPeakWindKmh} km/h
                         </td>
-                        <td style={{ padding: '8px 8px', color: '#38bdf8', fontWeight: 700 }}>
+                        <td style={{ padding: '7px 6px', color: '#38bdf8', fontWeight: 700, whiteSpace: 'nowrap' }}>
                           {d.estimatedRainfall24hMm} / {d.estimatedRainfall72hMm} mm
                         </td>
-                        <td style={{ padding: '8px 8px', color: '#cbd5e1' }}>
+                        <td style={{ padding: '7px 6px', color: '#cbd5e1', whiteSpace: 'nowrap' }}>
                           {d.elevationM}m MSL
                         </td>
-                        <td style={{ padding: '8px 8px', color: '#cbd5e1' }}>
+                        <td style={{ padding: '7px 6px', color: '#cbd5e1', whiteSpace: 'nowrap' }}>
                           {d.surgeVulnerabilityIndex}/100
                         </td>
-                        <td style={{ padding: '8px 10px' }}>
+                        <td style={{ padding: '7px 8px', whiteSpace: 'nowrap' }}>
                           <span style={{
-                            padding: '2px 7px',
+                            padding: '2px 6px',
                             borderRadius: '4px',
-                            fontSize: '0.65rem',
+                            fontSize: '0.64rem',
                             fontWeight: 800,
                             color: tierColor,
                             background: `${tierColor}22`,
@@ -1290,9 +1341,12 @@ export default function CycloneMonitorView({
             background: 'linear-gradient(145deg, rgba(15, 23, 42, 0.96) 0%, rgba(17, 24, 39, 0.95) 100%)',
             border: '1px solid rgba(56, 189, 248, 0.35)',
             borderRadius: '14px',
-            padding: '18px'
+            padding: '16px',
+            minWidth: 0,
+            width: '100%',
+            boxSizing: 'border-box'
           }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '6px', marginBottom: '8px' }}>
               <span style={{ fontSize: '0.9rem', fontWeight: 800, color: '#38bdf8' }}>
                 🌊 Compound Cyclone-to-Flood Super-Stack
               </span>
@@ -1320,22 +1374,23 @@ export default function CycloneMonitorView({
                   borderRadius: '10px',
                   background: 'rgba(8, 12, 22, 0.75)',
                   border: '1px solid rgba(255,255,255,0.08)',
-                  marginBottom: '12px'
+                  marginBottom: '12px',
+                  minWidth: 0
                 }}>
                   <div style={{ fontSize: '0.72rem', color: '#94a3b8' }}>Selected Coastal Target</div>
-                  <div style={{ fontSize: '1.02rem', fontWeight: 900, color: '#f8fafc', margin: '2px 0 8px' }}>
+                  <div style={{ fontSize: '0.98rem', fontWeight: 900, color: '#f8fafc', margin: '2px 0 8px', wordBreak: 'break-word' }}>
                     📍 {compoundRisk.targetLocation} ({compoundRisk.elevationM}m MSL)
                   </div>
 
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                    <div style={{ padding: '8px 10px', borderRadius: '8px', background: 'rgba(2, 132, 199, 0.14)', border: '1px solid rgba(56, 189, 248, 0.3)' }}>
-                      <div style={{ fontSize: '0.66rem', color: '#bae6fd', textTransform: 'uppercase', fontWeight: 700 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '10px' }}>
+                    <div style={{ padding: '8px 10px', borderRadius: '8px', background: 'rgba(2, 132, 199, 0.14)', border: '1px solid rgba(56, 189, 248, 0.3)', minWidth: 0 }}>
+                      <div style={{ fontSize: '0.65rem', color: '#bae6fd', textTransform: 'uppercase', fontWeight: 700 }}>
                         Flood ML Probability
                       </div>
-                      <div style={{ fontSize: '1.2rem', fontWeight: 900, color: '#38bdf8', marginTop: '2px' }}>
-                        {compoundRisk.floodModelProbability}% <span style={{ fontSize: '0.72rem' }}>({compoundRisk.floodModelRiskLevel})</span>
+                      <div style={{ fontSize: '1.15rem', fontWeight: 900, color: '#38bdf8', marginTop: '2px' }}>
+                        {compoundRisk.floodModelProbability}% <span style={{ fontSize: '0.7rem' }}>({compoundRisk.floodModelRiskLevel})</span>
                       </div>
-                      <div style={{ fontSize: '0.65rem', color: '#94a3b8' }}>
+                      <div style={{ fontSize: '0.64rem', color: '#94a3b8' }}>
                         Rain: {compoundRisk.cycloneInducedRainfall24hMm}mm (24h) / {compoundRisk.cycloneInducedRainfall72hMm}mm (72h)
                       </div>
                     </div>
@@ -1344,20 +1399,21 @@ export default function CycloneMonitorView({
                       padding: '8px 10px',
                       borderRadius: '8px',
                       background: compoundRisk.compoundRiskScore >= 70 ? 'rgba(239, 68, 68, 0.16)' : 'rgba(245, 158, 11, 0.16)',
-                      border: `1px solid ${compoundRisk.compoundRiskScore >= 70 ? 'rgba(239, 68, 68, 0.45)' : 'rgba(245, 158, 11, 0.45)'}`
+                      border: `1px solid ${compoundRisk.compoundRiskScore >= 70 ? 'rgba(239, 68, 68, 0.45)' : 'rgba(245, 158, 11, 0.45)'}`,
+                      minWidth: 0
                     }}>
-                      <div style={{ fontSize: '0.66rem', color: '#fde68a', textTransform: 'uppercase', fontWeight: 700 }}>
+                      <div style={{ fontSize: '0.65rem', color: '#fde68a', textTransform: 'uppercase', fontWeight: 700 }}>
                         Compound Multi-Hazard Score
                       </div>
                       <div style={{
-                        fontSize: '1.2rem',
+                        fontSize: '1.15rem',
                         fontWeight: 900,
                         color: compoundRisk.compoundRiskScore >= 70 ? '#ef4444' : '#fbbf24',
                         marginTop: '2px'
                       }}>
-                        {compoundRisk.compoundRiskScore}% <span style={{ fontSize: '0.68rem' }}>({compoundRisk.compoundRiskLevel.replace('_COMPOUND', '')})</span>
+                        {compoundRisk.compoundRiskScore}% <span style={{ fontSize: '0.66rem' }}>({compoundRisk.compoundRiskLevel.replace('_COMPOUND', '')})</span>
                       </div>
-                      <div style={{ fontSize: '0.65rem', color: '#cbd5e1' }}>
+                      <div style={{ fontSize: '0.64rem', color: '#cbd5e1', wordBreak: 'break-word' }}>
                         Wind: {compoundRisk.cycloneWindExposureKmh} km/h • {compoundRisk.surgeExposureTier.replace(/_/g, ' ')}
                       </div>
                     </div>
@@ -1372,16 +1428,17 @@ export default function CycloneMonitorView({
                       borderRadius: '8px',
                       background: 'rgba(8, 12, 22, 0.65)',
                       border: '1px solid rgba(255,255,255,0.06)',
-                      fontSize: '0.72rem'
+                      fontSize: '0.72rem',
+                      minWidth: 0
                     }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 800, color: '#e2e8f0' }}>
-                        <span>{drv.layer}</span>
-                        <span style={{ color: '#38bdf8' }}>+{drv.contributionPct} pts</span>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '4px', fontWeight: 800, color: '#e2e8f0' }}>
+                        <span style={{ wordBreak: 'break-word' }}>{drv.layer}</span>
+                        <span style={{ color: '#38bdf8', flexShrink: 0 }}>+{drv.contributionPct} pts</span>
                       </div>
                       <div style={{ fontSize: '0.68rem', color: '#fbbf24', fontWeight: 700, margin: '2px 0' }}>
                         {drv.metric}
                       </div>
-                      <div style={{ fontSize: '0.66rem', color: '#94a3b8' }}>
+                      <div style={{ fontSize: '0.66rem', color: '#94a3b8', wordBreak: 'break-word' }}>
                         {drv.detail}
                       </div>
                     </div>
