@@ -418,5 +418,24 @@ class SopRagQueryResponse(BaseModel):
     generatedAtUtc: str
 
 
+# ==============================================================================
+# PHASE 7: PRODUCTION MLOPS, DRIFT DETECTION & CONTINUOUS LEARNING SCHEMAS
+# ==============================================================================
+
+class DriftCheckRequest(BaseModel):
+    simulateRegimeShift: bool = Field(
+        False,
+        description="If True, simulates an extreme cyclonic cloudburst distribution shift to test PSI/KS drift alerts"
+    )
+
+
+class RetrainTriggerRequest(BaseModel):
+    triggerReason: Optional[str] = Field(
+        "Operator-Initiated Continuous Learning & PSI Drift Calibration",
+        description="Audit reason for triggering continuous retraining"
+    )
+
+
+
 
 

@@ -213,4 +213,38 @@ def test_phase6_nlp_sos_classifier_and_ner_extractor():
     assert "Grounded NDMA / IMD Operational Briefing" in rag["synthesizedBriefing"]
 
 
+def test_phase7_mlops_drift_retraining_and_prometheus():
+    from services.mlops_engine import (
+        evaluate_model_drift,
+        run_continuous_retraining_pipeline,
+        get_mlops_system_status,
+        generate_prometheus_metrics_text
+    )
+    init_database()
+
+    baseline_drift = evaluate_model_drift(simulate_regime_shift=False)
+    assert len(baseline_drift["featureDriftMetrics"]) == 15
+    assert baseline_drift["overallDriftStatus"] in ("STABLE", "MODERATE_SHIFT", "CRITICAL_DRIFT")
+
+    regime_drift = evaluate_model_drift(simulate_regime_shift=True)
+    assert regime_drift["overallDriftStatus"] == "CRITICAL_DRIFT"
+    assert regime_drift["retrainingRecommended"] is True
+    assert regime_drift["driftedFeaturesCount"] >= 4
+
+    retrain_run = run_continuous_retraining_pipeline(trigger_reason="Pytest Automated Drift Calibration")
+    assert retrain_run["status"] == "PROMOTED_TO_PRODUCTION"
+    assert retrain_run["rocAucAfter"] >= retrain_run["rocAucBefore"]
+    assert retrain_run["brierAfter"] <= retrain_run["brierBefore"]
+
+    status = get_mlops_system_status()
+    assert status["activeModelVersion"] == retrain_run["newVersion"]
+    assert status["prometheusEndpoint"] == "/api/metrics/prometheus"
+
+    prom_text = generate_prometheus_metrics_text()
+    assert "disasterradar_model_roc_auc" in prom_text
+    assert "disasterradar_feature_drift_psi" in prom_text
+    assert "disasterradar_predictions_total" in prom_text
+
+
+
 

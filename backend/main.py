@@ -35,12 +35,20 @@ from models.schemas import (
     SosAnalyzeRequest,
     SosAnalysisResponse,
     SopRagQueryRequest,
-    SopRagQueryResponse
+    SopRagQueryResponse,
+    DriftCheckRequest,
+    RetrainTriggerRequest
 )
 from services.nlp_rag_engine import (
     analyze_and_record_sos_post,
     get_sos_triage_feed,
     retrieve_sop_knowledge_rag
+)
+from services.mlops_engine import (
+    evaluate_model_drift,
+    run_continuous_retraining_pipeline,
+    get_mlops_system_status,
+    generate_prometheus_metrics_text
 )
 from services.cyclone_ingestion import (
     get_active_nio_cyclones_status,
@@ -1031,6 +1039,77 @@ def query_ndma_imd_sop_rag_endpoint(request: SopRagQueryRequest):
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# ==============================================================================
+# PHASE 7: PRODUCTION MLOPS, DRIFT DETECTION & PROMETHEUS TELEMETRY ENDPOINTS
+# ==============================================================================
+
+@app.get("/api/mlops/status")
+def get_mlops_status_endpoint():
+    """
+    Phase 7 MLOps Command Center Status:
+    Returns active production model version, ensemble weights, Prometheus/Grafana
+    health telemetry, 15-feature PSI/KS drift summary, and continuous retraining ledger.
+    """
+    try:
+        return get_mlops_system_status()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/mlops/drift-check")
+def run_mlops_drift_check_endpoint(
+    simulate_regime_shift: bool = False,
+    request: Optional[DriftCheckRequest] = None
+):
+    """
+    Phase 7 Automated Model Drift Detection:
+    Evaluates Population Stability Index (PSI) and Kolmogorov-Smirnov (KS) statistics
+    across all 15 hydrological features against the MODIS/Copernicus training manifold.
+    """
+    try:
+        sim = bool(simulate_regime_shift or (request and request.simulateRegimeShift))
+        return evaluate_model_drift(simulate_regime_shift=sim)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/mlops/retrain")
+def trigger_mlops_retraining_endpoint(
+    trigger_reason: Optional[str] = None,
+    request: Optional[RetrainTriggerRequest] = None
+):
+    """
+    Phase 7 Continuous Learning & Automated Retraining Pipeline:
+    Assimilates verified citizen ground-truth reports and SQLite prediction logs,
+    recalibrates Super-Stack ensemble weights (`RF + XGBoost`) and decision threshold `T*`,
+    and promotes the updated model version to production.
+    """
+    try:
+        reason = (
+            trigger_reason
+            or (request.triggerReason if request else None)
+            or "Automated PSI Drift Calibration"
+        )
+        return run_continuous_retraining_pipeline(trigger_reason=reason)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/metrics/prometheus")
+def prometheus_metrics_exporter():
+    """
+    Phase 7 Prometheus Telemetry Exporter:
+    Serves system health, inference latency, active model ROC-AUC/Brier scores,
+    and per-feature PSI drift gauges in Prometheus 0.0.4 text exposition format.
+    """
+    from fastapi.responses import PlainTextResponse
+    return PlainTextResponse(
+        content=generate_prometheus_metrics_text(),
+        media_type="text/plain; version=0.0.4; charset=utf-8"
+    )
+
 
 
 
