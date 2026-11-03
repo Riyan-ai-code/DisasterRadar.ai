@@ -72,7 +72,7 @@ html, body {
 /* Sidebar Styles */
 .sidebar {
   width: 240px;
-  min-width: 240px;
+  min-width: 76px;
   background-color: var(--sidebar-bg);
   color: var(--sidebar-text);
   display: flex;
@@ -82,6 +82,7 @@ html, body {
   z-index: 100;
   transition: transform var(--transition-normal);
   border-right: 1px solid rgba(255, 255, 255, 0.05);
+  flex-shrink: 0;
 }
 
 .brand-header {
