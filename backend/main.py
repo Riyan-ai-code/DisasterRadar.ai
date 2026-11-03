@@ -25,7 +25,15 @@ from models.schemas import (
     UserLoginRequest,
     UserResponse,
     AuthTokenResponse,
-    AssistantChatRequest
+    AssistantChatRequest,
+    CycloneEventSummary,
+    ActiveCyclonesResponse,
+    CycloneDetailResponse
+)
+from services.cyclone_ingestion import (
+    get_active_nio_cyclones_status,
+    get_historical_nio_cyclones_list,
+    get_cyclone_track_detail
 )
 from services.gemini_assistant import query_gemini_assistant
 from services.predictor import predict_flood_risk
@@ -825,6 +833,45 @@ def assistant_chat(request: AssistantChatRequest):
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+# ==============================================================================
+# CYCLONE INTELLIGENCE & LIVE NIO BASIN TRACKING ENDPOINTS (PHASE 1)
+# ==============================================================================
+
+@app.get("/api/cyclone/active", response_model=ActiveCyclonesResponse)
+def get_active_cyclones(refresh: bool = False):
+    """
+    Returns live North Indian Ocean (Bay of Bengal & Arabian Sea) cyclone activity,
+    basin status (ACTIVE_CYCLONIC_DISTURBANCE vs CALM_BASIN), live Indian coastal
+    maritime observatory telemetry, and strict data freshness provenance.
+    """
+    try:
+        return get_active_nio_cyclones_status(force_refresh=refresh)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/cyclone/historical", response_model=List[CycloneEventSummary])
+def list_historical_cyclones():
+    """
+    Returns verified historical North Indian Ocean tropical cyclones (IMD / NOAA IBTrACS)
+    available for interactive trajectory, intensity, and compound hazard replay.
+    """
+    try:
+        return get_historical_nio_cyclones_list()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/cyclone/{cyclone_id}/track", response_model=CycloneDetailResponse)
+def get_cyclone_track_by_id(cyclone_id: str):
+    """
+    Returns full observed track points, current position, official forecast trajectory,
+    RSMC uncertainty cone GeoJSON, and XGBoost-SHIPS Rapid Intensification (RI) trend
+    for a specific cyclone ID.
+    """
+    detail = get_cyclone_track_detail(cyclone_id)
+    if not detail:
+        raise HTTPException(status_code=404, detail=f"Cyclone '{cyclone_id}' not found in registry")
+    return detail
 
 @app.get("/api/download/apk")
 def download_apk():

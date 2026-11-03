@@ -9,7 +9,7 @@ Tables:
 
 import os
 import sqlite3
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Dict, Any, Optional
 
 # DB_DIR defaults to the backend/ folder for local dev. In production it should be
@@ -109,6 +109,54 @@ def init_database():
         created_at TEXT NOT NULL
     );
     """)
+
+    # 6. Tropical Cyclone Events Registry (Phase 1 Multi-Hazard Extension)
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS cyclone_events (
+        id TEXT PRIMARY KEY,
+        storm_name TEXT NOT NULL,
+        basin TEXT NOT NULL DEFAULT 'BOB',
+        basin_full_name TEXT NOT NULL DEFAULT 'Bay of Bengal',
+        season_year INTEGER NOT NULL,
+        status TEXT NOT NULL,
+        imd_category TEXT NOT NULL,
+        imd_classification TEXT NOT NULL,
+        max_sustained_wind_kmh REAL NOT NULL,
+        max_sustained_wind_kt REAL NOT NULL,
+        min_central_pressure_hpa REAL,
+        movement_speed_kmh REAL,
+        movement_direction_deg REAL,
+        movement_direction_cardinal TEXT,
+        landfall_location TEXT,
+        landfall_time_utc TEXT,
+        peak_rainfall_24h_mm REAL DEFAULT 0.0,
+        peak_rainfall_72h_mm REAL DEFAULT 0.0,
+        affected_states_json TEXT DEFAULT '[]',
+        impact_summary TEXT,
+        source_authority TEXT NOT NULL,
+        last_bulletin_utc TEXT NOT NULL,
+        fetched_at_utc TEXT NOT NULL
+    );
+    """)
+
+    # 7. Cyclone Observed & Official Forecast Track Points
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS cyclone_track_points (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        cyclone_id TEXT NOT NULL,
+        point_type TEXT NOT NULL,
+        forecast_hour INTEGER DEFAULT 0,
+        timestamp_utc TEXT NOT NULL,
+        latitude REAL NOT NULL,
+        longitude REAL NOT NULL,
+        wind_speed_kmh REAL NOT NULL,
+        wind_speed_kt REAL NOT NULL,
+        pressure_hpa REAL,
+        imd_category TEXT NOT NULL,
+        uncertainty_radius_km REAL DEFAULT 0.0,
+        FOREIGN KEY (cyclone_id) REFERENCES cyclone_events(id)
+    );
+    """)
     
     conn.commit()
     
@@ -116,6 +164,11 @@ def init_database():
     cursor.execute("SELECT COUNT(*) FROM historical_events")
     if cursor.fetchone()[0] == 0:
         seed_historical_data(conn)
+
+    # Seed verified North Indian Ocean historical cyclones if empty
+    cursor.execute("SELECT COUNT(*) FROM cyclone_events")
+    if cursor.fetchone()[0] == 0:
+        seed_cyclone_archive_data(conn)
         
     conn.close()
 
@@ -754,4 +807,133 @@ def ingest_station_telemetry(
     conn.commit()
     conn.close()
     return {"status": "success", "recorded_at": now_str, "station_id": station_id}
+
+
+import json as _json
+
+def seed_cyclone_archive_data(conn: sqlite3.Connection):
+    """Seeds verified North Indian Ocean historical cyclones from backend/data/historical_nio_cyclones.json."""
+    data_path = os.path.join(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+        "data",
+        "historical_nio_cyclones.json"
+    )
+    if not os.path.exists(data_path):
+        return
+
+    try:
+        with open(data_path, "r", encoding="utf-8") as f:
+            payload = _json.load(f)
+        cyclones = payload.get("cyclones", [])
+        cursor = conn.cursor()
+        now_iso = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+        for c in cyclones:
+            cid = c["id"]
+            cursor.execute("""
+            INSERT OR REPLACE INTO cyclone_events (
+                id, storm_name, basin, basin_full_name, season_year, status,
+                imd_category, imd_classification, max_sustained_wind_kmh, max_sustained_wind_kt,
+                min_central_pressure_hpa, movement_speed_kmh, movement_direction_deg,
+                movement_direction_cardinal, landfall_location, landfall_time_utc,
+                peak_rainfall_24h_mm, peak_rainfall_72h_mm, affected_states_json,
+                impact_summary, source_authority, last_bulletin_utc, fetched_at_utc
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                cid,
+                c.get("storm_name", "UNKNOWN"),
+                c.get("basin", "BOB"),
+                c.get("basin_FullName", "Bay of Bengal"),
+                int(c.get("season_year", 2023)),
+                c.get("status", "HISTORICAL_ARCHIVE"),
+                c.get("imd_category", "CS"),
+                c.get("imd_classification", "Cyclonic Storm (CS)"),
+                float(c.get("max_sustained_wind_kmh", 65.0)),
+                float(c.get("max_sustained_wind_kt", 35.0)),
+                float(c.get("min_central_pressure_hpa", 996.0)),
+                float(c.get("movement_speed_kmh", 12.0)),
+                float(c.get("movement_direction_deg", 330.0)),
+                c.get("movement_direction_cardinal", "NNW"),
+                c.get("landfall_location"),
+                c.get("landfall_time_utc"),
+                float(c.get("peak_rainfall_24h_mm", 0.0)),
+                float(c.get("peak_rainfall_72h_mm", 0.0)),
+                _json.dumps(c.get("affected_states", [])),
+                c.get("impact_summary", ""),
+                c.get("source_authority", "IMD RSMC New Delhi & NOAA IBTrACS"),
+                c.get("last_bulletin_utc", now_iso),
+                now_iso
+            ))
+
+            cursor.execute("DELETE FROM cyclone_track_points WHERE cyclone_id = ?", (cid,))
+            for pt in c.get("track_points", []):
+                cursor.execute("""
+                INSERT INTO cyclone_track_points (
+                    cyclone_id, point_type, forecast_hour, timestamp_utc,
+                    latitude, longitude, wind_speed_kmh, wind_speed_kt,
+                    pressure_hpa, imd_category, uncertainty_radius_km
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (
+                    cid,
+                    pt.get("point_type", "OBSERVED"),
+                    int(pt.get("forecast_hour", 0)),
+                    pt.get("timestamp_utc", now_iso),
+                    float(pt.get("latitude", 15.0)),
+                    float(pt.get("longitude", 85.0)),
+                    float(pt.get("wind_speed_kmh", 65.0)),
+                    float(pt.get("wind_speed_kt", 35.0)),
+                    float(pt.get("pressure_hpa", 996.0)),
+                    pt.get("imd_category", "CS"),
+                    float(pt.get("uncertainty_radius_km", 0.0))
+                ))
+        conn.commit()
+    except Exception as e:
+        print(f"Error seeding cyclone archive data: {e}")
+
+
+def get_stored_cyclone_events(status_filter: Optional[str] = None) -> List[Dict[str, Any]]:
+    """Fetches stored cyclone events from SQLite, seeding archive if empty."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT COUNT(*) FROM cyclone_events")
+    if cursor.fetchone()[0] == 0:
+        seed_cyclone_archive_data(conn)
+
+    if status_filter:
+        cursor.execute(
+            "SELECT * FROM cyclone_events WHERE status = ? ORDER BY season_year DESC, max_sustained_wind_kmh DESC",
+            (status_filter,)
+        )
+    else:
+        cursor.execute("SELECT * FROM cyclone_events ORDER BY season_year DESC, max_sustained_wind_kmh DESC")
+    rows = cursor.fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+
+def get_stored_cyclone_with_track(cyclone_id: str) -> Optional[Dict[str, Any]]:
+    """Fetches a specific cyclone event and all its ordered track points from SQLite."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT COUNT(*) FROM cyclone_events")
+    if cursor.fetchone()[0] == 0:
+        seed_cyclone_archive_data(conn)
+
+    cursor.execute("SELECT * FROM cyclone_events WHERE id = ?", (cyclone_id,))
+    event_row = cursor.fetchone()
+    if not event_row:
+        conn.close()
+        return None
+
+    cursor.execute(
+        "SELECT * FROM cyclone_track_points WHERE cyclone_id = ? ORDER BY id ASC",
+        (cyclone_id,)
+    )
+    track_rows = cursor.fetchall()
+    conn.close()
+
+    event_dict = dict(event_row)
+    event_dict["track_points"] = [dict(t) for t in track_rows]
+    return event_dict
+
 

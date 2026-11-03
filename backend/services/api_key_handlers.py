@@ -131,6 +131,22 @@ class APIKeyHandlers:
         }
 
     @classmethod
+    def get_cyclone_telemetry_handler(cls) -> Dict[str, Any]:
+        return {
+            "name": "Tropical Cyclone & Marine Basin Telemetry",
+            "service": "cyclone_nio_tracker",
+            "mode": "KEYLESS_FREE",
+            "status": "ACTIVE",
+            "is_free": True,
+            "requires_payment": False,
+            "current_provider": "GDACS Tropical Cyclone API + IMD RSMC Bulletins + NOAA IBTrACS + Open-Meteo Marine",
+            "activation_instructions": [
+                "Currently ACTIVE in 100% Free Keyless Mode for North Indian Ocean (Bay of Bengal & Arabian Sea).",
+                "Ingests official WMO/GDACS/IMD cyclone bulletins and historical IBTrACS best-track archives."
+            ]
+        }
+
+    @classmethod
     def get_all_handlers_status(cls) -> Dict[str, Any]:
         """Returns consolidated health and configuration state for all handlers."""
         handlers = [
@@ -138,7 +154,8 @@ class APIKeyHandlers:
             cls.get_elevation_handler(),
             cls.get_satellite_spectral_handler(),
             cls.get_geocoding_handler(),
-            cls.get_map_tiles_handler()
+            cls.get_map_tiles_handler(),
+            cls.get_cyclone_telemetry_handler()
         ]
         return {
             "gateway_status": "ALL_HANDLERS_OPERATIONAL",

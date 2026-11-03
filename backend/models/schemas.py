@@ -184,3 +184,103 @@ class AssistantChatRequest(BaseModel):
     history: Optional[List[dict]] = None
     apiKey: Optional[str] = None
 
+# ==============================================================================
+# CYCLONE INTELLIGENCE & MULTI-HAZARD SCHEMAS (PHASE 1)
+# ==============================================================================
+
+class DataProvenance(BaseModel):
+    sourceName: str = Field(..., description="Primary meteorological data source")
+    bulletinAuthority: str = Field("IMD RSMC New Delhi / WMO / GDACS", description="Authoritative meteorological agency")
+    fetchedAt: str = Field(..., description="ISO-8601 UTC timestamp when data was retrieved")
+    sourceIssuedAt: str = Field(..., description="ISO-8601 UTC timestamp when upstream bulletin was issued")
+    dataAgeMinutes: int = Field(0, description="Age of upstream data in minutes")
+    freshnessStatus: str = Field("LIVE_CURRENT", description="LIVE_CURRENT, DELAYED_CACHED, or STALE_ARCHIVE")
+    isOfficialForecast: bool = Field(True, description="True if track/intensity is from official meteorological agency")
+    isSimulatedOrHistorical: bool = Field(False, description="True if replaying historical archive event")
+    disclaimer: str = Field(
+        "Official cyclone track and intensity parameters sourced from WMO/GDACS/IMD bulletins. "
+        "Geospatial exposure and ML Rapid Intensification scores are decision-support estimates.",
+        description="Mandatory transparency and safety disclaimer"
+    )
+
+class CycloneTrackPoint(BaseModel):
+    pointType: str = Field(..., description="OBSERVED or OFFICIAL_FORECAST")
+    forecastHour: int = Field(0, description="0 for observed points; +12, +24, +48, +72, etc. for forecast")
+    timestampUtc: str
+    latitude: float
+    longitude: float
+    windSpeedKmh: float
+    windSpeedKt: float
+    pressureHpa: Optional[float] = 1000.0
+    imdCategory: str = Field(..., description="Official IMD classification code: LPA, D, DD, CS, SCS, VSCS, ESCS, SuCS")
+    imdClassification: str = Field(..., description="Full official IMD classification label")
+    uncertaintyRadiusKm: float = Field(0.0, description="Forecast cone radius in km (0 for observed)")
+
+class CycloneIntensityTrend(BaseModel):
+    windChange12hKt: float = 0.0
+    windChange24hKt: float = 0.0
+    pressureChange12hHpa: float = 0.0
+    rapidIntensificationActive: bool = Field(False, description="True if 24h wind increase >= 30 knots (55 km/h)")
+    riProbabilityPercent: float = Field(0.0, description="Experimental XGBoost-SHIPS Rapid Intensification probability (0-100%)")
+    riRiskTier: str = Field("LOW", description="LOW, MODERATE, HIGH, EXTREME")
+    topShapDrivers: List[dict] = Field(default_factory=list, description="SHAP feature attributions for intensity change")
+
+class CycloneEventSummary(BaseModel):
+    id: str
+    stormName: str
+    basin: str = Field("BOB", description="BOB (Bay of Bengal), ARB (Arabian Sea), or NIO")
+    basinFullName: str = "Bay of Bengal"
+    seasonYear: int
+    status: str = Field(..., description="ACTIVE, DISSIPATED, or HISTORICAL_ARCHIVE")
+    imdCategory: str
+    imdClassification: str
+    maxSustainedWindKmh: float
+    maxSustainedWindKt: float
+    minCentralPressureHpa: Optional[float] = 998.0
+    movementSpeedKmh: Optional[float] = 12.0
+    movementDirectionDeg: Optional[float] = 330.0
+    movementDirectionCardinal: Optional[str] = "NNW"
+    currentLatitude: float
+    currentLongitude: float
+    distanceToIndianCoastKm: float
+    nearestCoastalReference: str
+    landfallLocation: Optional[str] = None
+    landfallTimeUtc: Optional[str] = None
+    peakRainfall24hMm: Optional[float] = None
+    peakRainfall72hMm: Optional[float] = None
+    affectedStates: List[str] = Field(default_factory=list)
+    impactSummary: Optional[str] = None
+    sourceAuthority: str
+    lastBulletinUtc: str
+
+class CoastalStationWindTelemetry(BaseModel):
+    stationName: str
+    state: str
+    basin: str
+    latitude: float
+    longitude: float
+    windSpeedKmh: float
+    windGustsKmh: float
+    windDirectionDeg: float
+    surfacePressureHpa: float
+    rainfall24hMm: float
+    imdWindStatus: str
+
+class ActiveCyclonesResponse(BaseModel):
+    basinStatus: str = Field(..., description="ACTIVE_CYCLONIC_DISTURBANCE or CALM_BASIN")
+    basinHeadline: str
+    activeCount: int
+    activeCyclones: List[CycloneEventSummary]
+    coastalStationsTelemetry: List[CoastalStationWindTelemetry]
+    provenance: DataProvenance
+
+class CycloneDetailResponse(BaseModel):
+    event: CycloneEventSummary
+    observedTrack: List[CycloneTrackPoint]
+    currentPosition: CycloneTrackPoint
+    forecastTrack: List[CycloneTrackPoint]
+    uncertaintyConeGeoJSON: Optional[dict] = None
+    intensityTrend: CycloneIntensityTrend
+    provenance: DataProvenance
+
+
