@@ -152,3 +152,22 @@ def test_compound_cyclone_to_flood_bridge():
     assert len(res.compoundDrivers) == 3
     assert "VALIDATED BRIDGE ARCHITECTURE" in res.integrationArchitectureNote
 
+
+def test_multi_hazard_alerts_aggregation_and_filtering():
+    from main import get_active_system_alerts
+    init_database()
+
+    all_alerts = get_active_system_alerts(hazard_type="ALL")
+    assert all_alerts.totalActive >= 2
+    hazard_types = {a.hazardType for a in all_alerts.alerts}
+    assert "FLOOD" in hazard_types
+    assert "CYCLONE" in hazard_types
+
+    flood_only = get_active_system_alerts(hazard_type="FLOOD")
+    assert all(a.hazardType == "FLOOD" for a in flood_only.alerts)
+
+    cyclone_only = get_active_system_alerts(hazard_type="CYCLONE")
+    assert len(cyclone_only.alerts) >= 1
+    assert all("CYCLONE" in a.hazardType for a in cyclone_only.alerts)
+
+

@@ -26,13 +26,14 @@ function getImdStyle(code) {
 }
 
 export default function CycloneMonitorView({
+  initialCycloneId = null,
   onBackToDashboard,
   onSelectLocationForFloodPredict
 }) {
-  const [viewMode, setViewMode] = useState('live'); // 'live' | 'historical'
+  const [viewMode, setViewMode] = useState(initialCycloneId ? 'historical' : 'live'); // 'live' | 'historical'
   const [activeBasinData, setActiveBasinData] = useState(null);
   const [historicalList, setHistoricalList] = useState([]);
-  const [selectedCycloneId, setSelectedCycloneId] = useState('nio-2023-michaung');
+  const [selectedCycloneId, setSelectedCycloneId] = useState(initialCycloneId || 'nio-2023-michaung');
   const [cycloneDetail, setCycloneDetail] = useState(null);
   const [coastalExposure, setCoastalExposure] = useState(null);
   const [selectedDistrictId, setSelectedDistrictId] = useState(null);
@@ -124,7 +125,11 @@ export default function CycloneMonitorView({
         setHistoricalList(validHist);
         if (radarRes) setRadarConfig(radarRes);
 
-        if (activeRes?.activeCyclones?.length > 0) {
+        if (initialCycloneId) {
+          setSelectedCycloneId(initialCycloneId);
+          setViewMode('historical');
+          await loadCycloneTrack(initialCycloneId);
+        } else if (activeRes?.activeCyclones?.length > 0) {
           const firstActiveId = activeRes.activeCyclones[0].id;
           setSelectedCycloneId(firstActiveId);
           setViewMode('live');
@@ -142,7 +147,7 @@ export default function CycloneMonitorView({
     }
     initCycloneModule();
     return () => { mounted = false; };
-  }, [loadCycloneTrack]);
+  }, [loadCycloneTrack, initialCycloneId]);
 
   // Initialize Leaflet Map over North Indian Ocean (Bay of Bengal & Arabian Sea)
   useEffect(() => {

@@ -35,6 +35,7 @@ import {
 export default function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [selectedCycloneIdForView, setSelectedCycloneIdForView] = useState(null);
   const [modalState, setModalState] = useState({ isOpen: false, type: null });
   const [isDownloadModalOpen, setIsDownloadModalOpen] = useState(false);
 
@@ -422,6 +423,7 @@ export default function App() {
         {activeTab === 'cyclone' ? (
           /* TROPICAL CYCLONE MONITOR & NIO FORECAST CONE VIEW */
           <CycloneMonitorView
+            initialCycloneId={selectedCycloneIdForView}
             onBackToDashboard={() => setActiveTab('dashboard')}
             onSelectLocationForFloodPredict={handleGlobePredict}
           />
@@ -470,6 +472,11 @@ export default function App() {
           <HistoricalDataView
             currentLocation={activeLocation}
             onBackToDashboard={() => setActiveTab('dashboard')}
+            onOpenCyclone={(cycId) => {
+              if (cycId) setSelectedCycloneIdForView(cycId);
+              setActiveTab('cyclone');
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
           />
         ) : activeTab === 'alerts' || activeTab === 'reports' ? (
           /* FULL-PAGE ALERTS SCORING & 7-DAY RAINFALL REPORTS VIEW */
@@ -479,6 +486,11 @@ export default function App() {
             prediction={prediction}
             onBackToDashboard={() => setActiveTab('dashboard')}
             onLocationChange={handleLocationTelemetrySync}
+            onOpenCyclone={(cycId) => {
+              if (cycId) setSelectedCycloneIdForView(cycId);
+              setActiveTab('cyclone');
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
           />
         ) : activeTab === 'explainer' ? (
           /* FULL-PAGE AI EXPLAINER & EVACUATION PROTOCOLS + SYLLABUS AUDIT (CO4 | L6) */

@@ -504,22 +504,24 @@ def recent_predictions():
     return RECENT_PREDICTIONS
 
 @app.get("/api/alerts", response_model=AlertsListResponse)
-def get_active_system_alerts():
+def get_active_system_alerts(hazard_type: Optional[str] = None):
     """
-    Returns dynamic real-time flood alerts across all monitored stations and regions.
-    Flags any station breaching the critical 50% flood threshold with operational dispatch levels.
+    Phase 5 Multi-Hazard Alert Aggregation Engine:
+    Returns dynamic real-time flood, cyclone, and compound coastal alerts across all monitored
+    stations and the North Indian Ocean (Bay of Bengal & Arabian Sea) basin.
+    Supports optional `?hazard_type=FLOOD|CYCLONE|COMPOUND|ALL` filtering.
     """
     stations = get_all_stations()
     alerts: List[ActiveAlertItem] = []
     now_iso = datetime.now().isoformat()
-    
+
     for s in stations:
         if s.prob >= ALERT_THRESHOLD:
             tier = "CRITICAL_EMERGENCY" if s.prob >= 80.0 else ("HIGH_WARNING" if s.prob >= 65.0 else "MODERATE_WATCH")
             est_depth = round(max(0.1, (s.prob - 40.0) * 1.5), 1)
             headline = f"Flood Risk Threshold Breached ({s.prob}%) in {s.name}"
             action = "Deploy auxiliary dewatering pumps and alert low-lying areas" if s.prob >= 65.0 else "Maintain active drain monitoring and clearance"
-            
+
             alerts.append(ActiveAlertItem(
                 id=f"alert-{s.name.lower().replace(' ', '-')}-{int(s.prob)}",
                 location=s.name,
@@ -533,10 +535,11 @@ def get_active_system_alerts():
                 rainfall24h=s.r24,
                 rainfall72h=s.r72,
                 waterDepthEstCm=est_depth,
-                timestamp=now_iso
+                timestamp=now_iso,
+                hazardType="FLOOD"
             ))
-            
-    # If no stations exceed 50% right now, provide baseline advisory watch
+
+    # If no flood stations exceed 50% right now, provide baseline hydrological advisory watch
     if not alerts and stations:
         top_s = max(stations, key=lambda x: x.prob)
         alerts.append(ActiveAlertItem(
@@ -552,9 +555,65 @@ def get_active_system_alerts():
             rainfall24h=top_s.r24,
             rainfall72h=top_s.r72,
             waterDepthEstCm=0.0,
-            timestamp=now_iso
+            timestamp=now_iso,
+            hazardType="FLOOD"
         ))
-        
+
+    # Integrate Live North Indian Ocean Cyclone & Maritime Coastal Observatory Alerts
+    try:
+        nio_status = get_active_nio_cyclones_status(force_refresh=False)
+        if nio_status.activeCyclones:
+            for cyc in nio_status.activeCyclones:
+                wind_prob_proxy = round(min(99.0, max(55.0, (cyc.maxSustainedWindKmh / 160.0) * 100.0)), 1)
+                c_tier = "CRITICAL_EMERGENCY" if cyc.maxSustainedWindKt >= 64 else "HIGH_WARNING"
+                alerts.append(ActiveAlertItem(
+                    id=f"cyclone-active-{cyc.id}",
+                    location=f"{cyc.nearestCoastalReference} ({cyc.basin})",
+                    latitude=cyc.currentLatitude,
+                    longitude=cyc.currentLongitude,
+                    probability=wind_prob_proxy,
+                    riskLevel="CRITICAL" if cyc.maxSustainedWindKt >= 64 else "HIGH",
+                    alertTier=c_tier,
+                    headline=f"Active {cyc.imdClassification}: {cyc.stormName} ({cyc.maxSustainedWindKmh} km/h)",
+                    actionRequired=f"Track {cyc.distanceToIndianCoastKm} km off {cyc.nearestCoastalReference}. Suspend marine operations and monitor RSMC forecast cone.",
+                    rainfall24h=cyc.peakRainfall24hMm or 140.0,
+                    rainfall72h=cyc.peakRainfall72hMm or 260.0,
+                    waterDepthEstCm=round(max(15.0, (cyc.peakRainfall24hMm or 140.0) * 0.35), 1),
+                    timestamp=now_iso,
+                    hazardType="CYCLONE",
+                    imdCategory=cyc.imdCategory,
+                    windSpeedKmh=cyc.maxSustainedWindKmh,
+                    centralPressureHpa=cyc.minCentralPressureHpa
+                ))
+        elif nio_status.coastalStationsTelemetry:
+            top_maritime = max(nio_status.coastalStationsTelemetry, key=lambda x: x.windSpeedKmh)
+            m_prob = round(min(85.0, max(12.0, (top_maritime.windSpeedKmh / 90.0) * 100.0)), 1)
+            alerts.append(ActiveAlertItem(
+                id=f"maritime-watch-{top_maritime.stationName.split(',')[0].lower().replace(' ', '-')}",
+                location=f"{top_maritime.stationName} ({top_maritime.basin})",
+                latitude=top_maritime.latitude,
+                longitude=top_maritime.longitude,
+                probability=m_prob,
+                riskLevel="HIGH" if top_maritime.windSpeedKmh >= 50 else "LOW",
+                alertTier="HIGH_WARNING" if top_maritime.windSpeedKmh >= 50 else "NORMAL_WATCH",
+                headline=f"NIO Coastal Maritime Watch: {top_maritime.imdWindStatus} ({top_maritime.windSpeedKmh} km/h)",
+                actionRequired=f"{nio_status.basinHeadline} Surface pressure {top_maritime.surfacePressureHpa} hPa.",
+                rainfall24h=top_maritime.rainfall24hMm,
+                rainfall72h=round(top_maritime.rainfall24hMm * 1.6, 1),
+                waterDepthEstCm=0.0,
+                timestamp=now_iso,
+                hazardType="CYCLONE",
+                imdCategory="LPA" if top_maritime.windSpeedKmh < 31 else "D",
+                windSpeedKmh=top_maritime.windSpeedKmh,
+                centralPressureHpa=top_maritime.surfacePressureHpa
+            ))
+    except Exception as e:
+        print(f"Warning: could not attach cyclone alerts to /api/alerts: {e}")
+
+    if hazard_type and hazard_type.upper() != "ALL":
+        ht = hazard_type.upper()
+        alerts = [a for a in alerts if ht in a.hazardType.upper()]
+
     return AlertsListResponse(
         totalActive=len(alerts),
         threshold=ALERT_THRESHOLD,

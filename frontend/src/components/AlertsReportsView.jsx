@@ -5,7 +5,8 @@ import {
   fetchWeeklyReports,
   geocodeLocation,
   fetchGlobalLiveTelemetry,
-  predictFloodRisk
+  predictFloodRisk,
+  fetchSystemMultiHazardAlerts
 } from '../services/api';
 
 export default function AlertsReportsView({
@@ -14,12 +15,15 @@ export default function AlertsReportsView({
   prediction,
   onBackToDashboard,
   isEmbeddedInModal = false,
-  onLocationChange
+  onLocationChange,
+  onOpenCyclone
 }) {
   const [subTab, setSubTab] = useState('threshold');
   const [alertScore, setAlertScore] = useState(null);
   const [rainfallImpact, setRainfallImpact] = useState(null);
   const [weeklyReport, setWeeklyReport] = useState(null);
+  const [multiHazardAlerts, setMultiHazardAlerts] = useState([]);
+  const [hazardFilter, setHazardFilter] = useState('ALL');
   const [loading, setLoading] = useState(false);
 
   // Active Location & Telemetry State
@@ -109,11 +113,13 @@ export default function AlertsReportsView({
     Promise.all([
       fetchAlertScoring(payload),
       fetchRainfallImpact(payload),
-      fetchWeeklyReports(locName, locLat, locLng, payload)
-    ]).then(([score, impact, weekly]) => {
+      fetchWeeklyReports(locName, locLat, locLng, payload),
+      fetchSystemMultiHazardAlerts('ALL')
+    ]).then(([score, impact, weekly, mhRes]) => {
       if (score) setAlertScore(score);
       if (impact) setRainfallImpact(impact);
       if (weekly) setWeeklyReport(weekly);
+      if (mhRes?.alerts) setMultiHazardAlerts(mhRes.alerts);
     }).finally(() => {
       setLoading(false);
     });
@@ -802,6 +808,25 @@ export default function AlertsReportsView({
         >
           📈 Rainfall Sensitivity Curves
         </button>
+
+        <button
+          onClick={() => setSubTab('multihazard')}
+          style={{
+            background: 'none',
+            border: 'none',
+            borderBottom: subTab === 'multihazard' ? '3px solid #f59e0b' : '3px solid transparent',
+            color: subTab === 'multihazard' ? '#fbbf24' : '#94a3b8',
+            fontWeight: 700,
+            fontSize: '0.92rem',
+            padding: '10px 16px',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px'
+          }}
+        >
+          🌀 Multi-Hazard Feed (Flood + Cyclone)
+        </button>
       </div>
 
       {/* REAL-TIME LAYER SYNCHRONIZATION SHIELD: DO NOT SHOW UNTIL EACH LAYER IS REAL TIME */}
@@ -1154,6 +1179,133 @@ export default function AlertsReportsView({
                 ))}
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* TAB 4: 🌀 MULTI-HAZARD EARLY WARNING FEED (FLOOD + CYCLONE) */}
+      {subTab === 'multihazard' && (
+        <div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', marginBottom: '16px' }}>
+            <div>
+              <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: '#f8fafc' }}>
+                Unified Multi-Hazard Early Warning & Coastal Watch Feed
+              </h3>
+              <div style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: '4px' }}>
+                Aggregates municipal hydrological flood alerts (`FLOOD`) and North Indian Ocean cyclone / coastal observatory warnings (`CYCLONE`).
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              {[
+                { id: 'ALL', label: '🌐 All Hazards' },
+                { id: 'FLOOD', label: '🌊 Flood Hydrology' },
+                { id: 'CYCLONE', label: '🌀 Cyclone & Coastal' }
+              ].map(f => (
+                <button
+                  key={f.id}
+                  onClick={() => setHazardFilter(f.id)}
+                  style={{
+                    padding: '6px 12px',
+                    borderRadius: '8px',
+                    fontSize: '0.78rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    background: hazardFilter === f.id ? '#0284c7' : '#0b1120',
+                    color: hazardFilter === f.id ? '#ffffff' : '#94a3b8',
+                    border: `1px solid ${hazardFilter === f.id ? '#38bdf8' : '#1e293b'}`
+                  }}
+                >
+                  {f.label}
+                </button>
+              ))}
+
+              {onOpenCyclone && (
+                <button
+                  onClick={() => onOpenCyclone()}
+                  style={{
+                    padding: '6px 14px',
+                    borderRadius: '8px',
+                    fontSize: '0.78rem',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    background: 'rgba(245, 158, 11, 0.16)',
+                    color: '#fbbf24',
+                    border: '1px solid rgba(245, 158, 11, 0.45)'
+                  }}
+                >
+                  🗺️ Open Cyclone Trajectory GIS →
+                </button>
+              )}
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {multiHazardAlerts
+              .filter(a => hazardFilter === 'ALL' || (a.hazardType || 'FLOOD').includes(hazardFilter))
+              .map((alertItem) => {
+                const isCyc = (alertItem.hazardType || '').includes('CYCLONE');
+                const borderColor = isCyc ? 'rgba(245, 158, 11, 0.45)' : 'rgba(56, 189, 248, 0.35)';
+                return (
+                  <div
+                    key={alertItem.id}
+                    style={{
+                      background: '#0b1120',
+                      border: `1px solid ${borderColor}`,
+                      borderLeft: `4px solid ${isCyc ? '#f59e0b' : '#38bdf8'}`,
+                      borderRadius: '12px',
+                      padding: '16px 20px',
+                      display: 'flex',
+                      flexWrap: 'wrap',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      gap: '14px'
+                    }}
+                  >
+                    <div style={{ flex: '1 1 460px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px', flexWrap: 'wrap' }}>
+                        <span style={{
+                          padding: '2px 8px',
+                          borderRadius: '4px',
+                          fontSize: '0.68rem',
+                          fontWeight: 800,
+                          background: isCyc ? 'rgba(245, 158, 11, 0.18)' : 'rgba(56, 189, 248, 0.18)',
+                          color: isCyc ? '#fbbf24' : '#38bdf8',
+                          border: `1px solid ${isCyc ? 'rgba(245, 158, 11, 0.4)' : 'rgba(56, 189, 248, 0.4)'}`
+                        }}>
+                          {isCyc ? `🌀 CYCLONE / MARITIME (${alertItem.imdCategory || 'NIO'})` : '🌊 FLOOD HYDROLOGY'}
+                        </span>
+                        <span style={{ fontSize: '0.76rem', color: '#94a3b8', fontWeight: 600 }}>
+                          📍 {alertItem.location} ({Number(alertItem.latitude).toFixed(2)}°N, {Number(alertItem.longitude).toFixed(2)}°E)
+                        </span>
+                      </div>
+
+                      <div style={{ fontSize: '1rem', fontWeight: 800, color: '#f8fafc', marginBottom: '4px' }}>
+                        {alertItem.headline}
+                      </div>
+                      <div style={{ fontSize: '0.82rem', color: '#cbd5e1', lineHeight: 1.45 }}>
+                        {alertItem.actionRequired}
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '16px', alignItems: 'center', flexWrap: 'wrap' }}>
+                      <div style={{ textAlign: 'right' }}>
+                        <div style={{ fontSize: '0.68rem', color: '#94a3b8', textTransform: 'uppercase' }}>
+                          {isCyc ? 'Wind / Pressure' : '24h / 72h Rain'}
+                        </div>
+                        <div style={{ fontSize: '0.92rem', fontWeight: 800, color: isCyc ? '#fbbf24' : '#38bdf8' }}>
+                          {isCyc
+                            ? `${alertItem.windSpeedKmh ?? 22} km/h • ${alertItem.centralPressureHpa ?? 1008} hPa`
+                            : `${alertItem.rainfall24h} mm / ${alertItem.rainfall72h} mm`}
+                        </div>
+                        <div style={{ fontSize: '0.7rem', color: '#64748b' }}>
+                          Tier: {alertItem.alertTier}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
           </div>
         </div>
       )}

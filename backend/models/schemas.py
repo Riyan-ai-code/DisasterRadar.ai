@@ -108,6 +108,10 @@ class ActiveAlertItem(BaseModel):
     rainfall72h: float
     waterDepthEstCm: float
     timestamp: str
+    hazardType: str = Field("FLOOD", description="FLOOD, CYCLONE, or COMPOUND_CYCLONE_FLOOD")
+    imdCategory: Optional[str] = None
+    windSpeedKmh: Optional[float] = None
+    centralPressureHpa: Optional[float] = None
 
 class AlertsListResponse(BaseModel):
     totalActive: int

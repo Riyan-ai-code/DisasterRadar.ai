@@ -1,8 +1,16 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { fetchHistoricalCyclones } from '../services/api';
 
-export default function HistoricalDataView({ currentLocation, onBackToDashboard, isEmbeddedInModal = false }) {
+export default function HistoricalDataView({
+  currentLocation,
+  onBackToDashboard,
+  isEmbeddedInModal = false,
+  onOpenCyclone
+}) {
   const [subTab, setSubTab] = useState('events');
   const [events, setEvents] = useState([]);
+  const [historicalCyclones, setHistoricalCyclones] = useState([]);
+  const [cycloneBasinFilter, setCycloneBasinFilter] = useState('ALL');
   const [stats, setStats] = useState(null);
   const [auditLogs, setAuditLogs] = useState([]);
   const [search, setSearch] = useState('');
@@ -22,8 +30,9 @@ export default function HistoricalDataView({ currentLocation, onBackToDashboard,
       fetch(`http://127.0.0.1:8000/api/history/events${searchParam}`).then(res => res.json()).catch(() => []),
       fetch('http://127.0.0.1:8000/api/history/events').then(res => res.json()).catch(() => []),
       fetch('http://127.0.0.1:8000/api/history/stats').then(res => res.json()).catch(() => null),
-      fetch('http://127.0.0.1:8000/api/history/predictions').then(res => res.json()).catch(() => [])
-    ]).then(([locEvs, allEvs, st, logs]) => {
+      fetch('http://127.0.0.1:8000/api/history/predictions').then(res => res.json()).catch(() => []),
+      fetchHistoricalCyclones()
+    ]).then(([locEvs, allEvs, st, logs, cycList]) => {
       if (locEvs && locEvs.length > 0) {
         setEvents(locEvs);
       } else if (allEvs && allEvs.length > 0) {
@@ -31,6 +40,7 @@ export default function HistoricalDataView({ currentLocation, onBackToDashboard,
       }
       if (st) setStats(st);
       if (logs && logs.length > 0) setAuditLogs(logs);
+      if (Array.isArray(cycList)) setHistoricalCyclones(cycList);
     }).finally(() => {
       setLoading(false);
     });
@@ -452,6 +462,26 @@ export default function HistoricalDataView({ currentLocation, onBackToDashboard,
         </button>
 
         <button
+          onClick={() => setSubTab('cyclones')}
+          style={{
+            background: 'none',
+            border: 'none',
+            borderBottom: subTab === 'cyclones' ? '3px solid #f59e0b' : '3px solid transparent',
+            color: subTab === 'cyclones' ? '#fbbf24' : '#94a3b8',
+            fontWeight: 700,
+            fontSize: '0.92rem',
+            padding: '10px 16px',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            transition: 'color 0.15s ease'
+          }}
+        >
+          🌀 Verified NIO Cyclone Archive ({historicalCyclones.length})
+        </button>
+
+        <button
           onClick={() => setSubTab('audit')}
           style={{
             background: 'none',
@@ -609,7 +639,131 @@ export default function HistoricalDataView({ currentLocation, onBackToDashboard,
         </div>
       )}
 
-      {/* SUB-TAB 2: LIVE PREDICTION AUDIT LOG */}
+      {/* SUB-TAB 2: VERIFIED NIO CYCLONE ARCHIVE (IMD / IBTrACS) */}
+      {subTab === 'cyclones' && (
+        <div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', marginBottom: '16px' }}>
+            <div>
+              <strong style={{ color: '#fbbf24', fontSize: '0.95rem' }}>
+                Verified North Indian Ocean Tropical Cyclone Best-Track Registry (IMD RSMC New Delhi & NOAA IBTrACS)
+              </strong>
+              <p style={{ color: '#94a3b8', fontSize: '0.8rem', margin: '4px 0 0 0' }}>
+                Official 3-minute sustained wind speeds, minimum central pressures, landfall corridors, and 24h/72h coastal rainband accumulations.
+              </p>
+            </div>
+
+            <div style={{ display: 'flex', gap: '8px' }}>
+              {[
+                { id: 'ALL', label: 'All NIO Basins' },
+                { id: 'BOB', label: 'Bay of Bengal (BOB)' },
+                { id: 'ARB', label: 'Arabian Sea (ARB)' }
+              ].map(b => (
+                <button
+                  key={b.id}
+                  onClick={() => setCycloneBasinFilter(b.id)}
+                  style={{
+                    padding: '6px 12px',
+                    borderRadius: '8px',
+                    fontSize: '0.78rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    background: cycloneBasinFilter === b.id ? '#0284c7' : '#0b1120',
+                    color: cycloneBasinFilter === b.id ? '#ffffff' : '#94a3b8',
+                    border: `1px solid ${cycloneBasinFilter === b.id ? '#38bdf8' : '#1e293b'}`
+                  }}
+                >
+                  {b.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div style={{ background: '#0b1120', border: '1px solid rgba(245, 158, 11, 0.25)', borderRadius: '12px', overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem', textAlign: 'left' }}>
+              <thead>
+                <tr style={{ background: '#0f172a', borderBottom: '1px solid rgba(245, 158, 11, 0.25)', color: '#94a3b8' }}>
+                  <th style={{ padding: '12px 16px' }}>Cyclone & Season</th>
+                  <th style={{ padding: '12px 16px' }}>Basin & Landfall Corridor</th>
+                  <th style={{ padding: '12px 16px' }}>IMD Classification</th>
+                  <th style={{ padding: '12px 16px' }}>Peak Wind & Pressure</th>
+                  <th style={{ padding: '12px 16px' }}>Peak Rain (24h / 72h)</th>
+                  <th style={{ padding: '12px 16px' }}>Impact & Trajectory Replay</th>
+                </tr>
+              </thead>
+              <tbody>
+                {historicalCyclones
+                  .filter(c => cycloneBasinFilter === 'ALL' || c.basin === cycloneBasinFilter)
+                  .map(cyc => (
+                    <tr key={cyc.id} style={{ borderBottom: '1px solid #1e293b' }}>
+                      <td style={{ padding: '14px 16px', minWidth: '150px' }}>
+                        <strong style={{ color: '#f8fafc', fontSize: '0.9rem' }}>🌀 Cyclone {cyc.stormName}</strong>
+                        <div style={{ fontSize: '0.74rem', color: '#94a3b8', marginTop: '2px' }}>
+                          Season: {cyc.seasonYear} • {cyc.sourceAuthority}
+                        </div>
+                      </td>
+                      <td style={{ padding: '14px 16px', minWidth: '180px' }}>
+                        <strong style={{ color: '#38bdf8' }}>{cyc.basinFullName} ({cyc.basin})</strong>
+                        <div style={{ fontSize: '0.74rem', color: '#cbd5e1', marginTop: '2px' }}>
+                          📍 {cyc.landfallLocation || cyc.nearestCoastalReference}
+                        </div>
+                      </td>
+                      <td style={{ padding: '14px 16px' }}>
+                        <span style={{
+                          display: 'inline-block',
+                          padding: '3px 9px',
+                          borderRadius: '4px',
+                          fontSize: '0.72rem',
+                          fontWeight: 800,
+                          background: 'rgba(245, 158, 11, 0.16)',
+                          color: '#fbbf24',
+                          border: '1px solid rgba(245, 158, 11, 0.45)'
+                        }}>
+                          {cyc.imdClassification}
+                        </span>
+                      </td>
+                      <td style={{ padding: '14px 16px', whiteSpace: 'nowrap' }}>
+                        <strong style={{ color: '#f8fafc' }}>{cyc.maxSustainedWindKmh} km/h</strong> ({cyc.maxSustainedWindKt} kt)
+                        <div style={{ fontSize: '0.74rem', color: '#94a3b8' }}>
+                          Min Pressure: {cyc.minCentralPressureHpa} hPa
+                        </div>
+                      </td>
+                      <td style={{ padding: '14px 16px', whiteSpace: 'nowrap' }}>
+                        <strong style={{ color: '#38bdf8' }}>{cyc.peakRainfall24hMm || 220} mm</strong> (24h)
+                        <div style={{ fontSize: '0.74rem', color: '#94a3b8' }}>
+                          {cyc.peakRainfall72hMm || 390} mm (72h)
+                        </div>
+                      </td>
+                      <td style={{ padding: '14px 16px', maxWidth: '340px' }}>
+                        <div style={{ fontSize: '0.76rem', color: '#cbd5e1', lineHeight: 1.4, marginBottom: '8px' }}>
+                          {cyc.impactSummary}
+                        </div>
+                        {onOpenCyclone && (
+                          <button
+                            onClick={() => onOpenCyclone(cyc.id)}
+                            style={{
+                              padding: '5px 11px',
+                              borderRadius: '6px',
+                              background: '#0284c7',
+                              border: '1px solid #38bdf8',
+                              color: '#ffffff',
+                              fontSize: '0.74rem',
+                              fontWeight: 800,
+                              cursor: 'pointer'
+                            }}
+                          >
+                            🗺️ Replay Trajectory & Compound Risk →
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* SUB-TAB 3: LIVE PREDICTION AUDIT LOG */}
       {subTab === 'audit' && (
         <div>
           <div style={{ background: '#0b1120', borderLeft: '4px solid #0284c7', border: '1px solid rgba(56, 189, 248, 0.2)', padding: '14px 18px', borderRadius: '8px', marginBottom: '16px' }}>
