@@ -28,12 +28,19 @@ from models.schemas import (
     AssistantChatRequest,
     CycloneEventSummary,
     ActiveCyclonesResponse,
-    CycloneDetailResponse
+    CycloneDetailResponse,
+    CoastalExposureResponse,
+    CompoundFloodRiskRequest,
+    CompoundFloodRiskResponse
 )
 from services.cyclone_ingestion import (
     get_active_nio_cyclones_status,
     get_historical_nio_cyclones_list,
     get_cyclone_track_detail
+)
+from services.cyclone_intelligence import (
+    compute_coastal_district_exposure,
+    evaluate_compound_cyclone_flood_risk
 )
 from services.gemini_assistant import query_gemini_assistant
 from services.predictor import predict_flood_risk
@@ -872,6 +879,34 @@ def get_cyclone_track_by_id(cyclone_id: str):
     if not detail:
         raise HTTPException(status_code=404, detail=f"Cyclone '{cyclone_id}' not found in registry")
     return detail
+
+@app.get("/api/cyclone/{cyclone_id}/coastal-exposure", response_model=CoastalExposureResponse)
+def get_cyclone_coastal_exposure(cyclone_id: str):
+    """
+    Phase 3: Evaluates geographical exposure across 28 Indian coastal districts based on
+    proximity to projected cyclone path, radial wind/rainfall decay envelopes, coastal DEM
+    elevation, and population density. Clearly separates geographical exposure from validated
+    hydrodynamic surge predictions.
+    """
+    result = compute_coastal_district_exposure(cyclone_id)
+    if not result:
+        raise HTTPException(status_code=404, detail=f"Cyclone '{cyclone_id}' not found in registry")
+    return result
+
+@app.post("/api/cyclone/compound-flood-risk", response_model=CompoundFloodRiskResponse)
+def compute_compound_cyclone_flood_risk(request: CompoundFloodRiskRequest):
+    """
+    Phase 4: Validated Compound Cyclone-to-Flood Bridge.
+    Passes cyclone-induced 24h/72h rainband accumulation and coastal elevation into the
+    existing 15-feature XGBoost + Random Forest Flood Ensemble (`predict_flood_risk_ensemble`),
+    and combines hydrological flood probability with cyclonic wind & coastal outfall backwater
+    impedance into a unified multi-hazard compound risk assessment.
+    """
+    result = evaluate_compound_cyclone_flood_risk(request)
+    if not result:
+        raise HTTPException(status_code=404, detail=f"Cyclone '{request.cycloneId}' not found in registry")
+    return result
+
 
 @app.get("/api/download/apk")
 def download_apk():

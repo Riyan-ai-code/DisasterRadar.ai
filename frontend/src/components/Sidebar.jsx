@@ -15,6 +15,13 @@ export default function Sidebar({ isOpen, activeTab, onSelectTab, onOpenModal, o
         <path d="M11 8v6M8 11h6"/>
       </svg>
     )},
+    { id: 'cyclone', label: 'Cyclone & Coastal Risk', icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M21 4H12a8 8 0 0 0-8 8c0 4.42 3.58 8 8 8h9"/>
+        <path d="M3 20h9a8 8 0 0 0 8-8c0-4.42-3.58-8-8-8H3"/>
+        <circle cx="12" cy="12" r="2.5"/>
+      </svg>
+    )},
     { id: 'map', label: '3D World Globe & GIS', icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/>

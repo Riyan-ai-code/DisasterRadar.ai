@@ -18,6 +18,7 @@ import PredictRiskView from './components/PredictRiskView';
 import AiExplainerView from './components/AiExplainerView';
 import SplineAiGuardian from './components/SplineAiGuardian';
 import EvacuationRouteView from './components/EvacuationRouteView';
+import CycloneMonitorView from './components/CycloneMonitorView';
 import InstallAppModal from './components/InstallAppModal';
 import LocationTransparencyBanner from './components/LocationTransparencyBanner';
 
@@ -418,7 +419,13 @@ export default function App() {
           </div>
         )}
 
-        {activeTab === 'map' ? (
+        {activeTab === 'cyclone' ? (
+          /* TROPICAL CYCLONE MONITOR & NIO FORECAST CONE VIEW */
+          <CycloneMonitorView
+            onBackToDashboard={() => setActiveTab('dashboard')}
+            onSelectLocationForFloodPredict={handleGlobePredict}
+          />
+        ) : activeTab === 'map' ? (
           /* 3D WORLD GLOBE & CARTOGRAPHIC GIS ATLAS VIEW */
           <GlobeRiskMap
             onBackToDashboard={() => setActiveTab('dashboard')}
@@ -509,6 +516,9 @@ export default function App() {
                 <div className="hero-cta-group">
                   <button className="primary-cta-btn" onClick={() => handleSelectTab('predict')}>
                     <span>⚡ Predict Risk Studio</span>
+                  </button>
+                  <button className="secondary-cta-btn" onClick={() => handleSelectTab('cyclone')} style={{ borderColor: 'rgba(56, 189, 248, 0.45)', color: '#38bdf8' }}>
+                    <span>🌀 Cyclone & Coastal Risk</span>
                   </button>
                   <button className="secondary-cta-btn" onClick={() => handleSelectTab('map')}>
                     <span>🌐 3D World Globe & GIS</span>

@@ -24,6 +24,11 @@ from services.cyclone_ingestion import (
     get_historical_nio_cyclones_list,
     get_cyclone_track_detail
 )
+from models.schemas import CompoundFloodRiskRequest
+from services.cyclone_intelligence import (
+    compute_coastal_district_exposure,
+    evaluate_compound_cyclone_flood_risk
+)
 
 
 def test_imd_cyclone_classification_scale():
@@ -108,3 +113,42 @@ def test_active_nio_cyclones_status_endpoint_contract():
     assert active_res.basinStatus in ("ACTIVE_CYCLONIC_DISTURBANCE", "DEPRESSION_WATCH", "CALM_BASIN")
     assert len(active_res.coastalStationsTelemetry) == 8
     assert active_res.provenance.sourceName != ""
+
+
+def test_coastal_district_exposure_assessment():
+    init_database()
+    exp = compute_coastal_district_exposure("nio-2023-michaung")
+    assert exp is not None
+    assert exp.cycloneId == "nio-2023-michaung"
+    assert len(exp.districts) >= 20
+    # Top exposed district for Cyclone Michaung should be in Andhra Pradesh or Tamil Nadu
+    top_d = exp.districts[0]
+    assert top_d.state in ("Andhra Pradesh", "Tamil Nadu")
+    assert top_d.exposureScore >= 50.0
+    assert top_d.isValidatedImpactPrediction is False
+    assert "GEOGRAPHICAL EXPOSURE ESTIMATE" in exp.methodologyDisclaimer
+
+
+def test_compound_cyclone_to_flood_bridge():
+    init_database()
+    req = CompoundFloodRiskRequest(
+        cycloneId="nio-2023-michaung",
+        districtId="TN-CHN"
+    )
+    res = evaluate_compound_cyclone_flood_risk(req)
+    assert res is not None
+    assert res.cycloneId == "nio-2023-michaung"
+    assert "Chennai" in res.targetLocation
+    assert res.cycloneInducedRainfall24hMm > 50.0
+    assert 0.0 <= res.floodModelProbability <= 100.0
+    assert 0.0 <= res.compoundRiskScore <= 100.0
+    assert res.compoundRiskLevel in (
+        "CRITICAL_COMPOUND",
+        "HIGH_COMPOUND",
+        "MODERATE_COMPOUND",
+        "LOW_COMPOUND"
+    )
+    assert len(res.floodRiskFactors) > 0
+    assert len(res.compoundDrivers) == 3
+    assert "VALIDATED BRIDGE ARCHITECTURE" in res.integrationArchitectureNote
+

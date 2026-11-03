@@ -283,4 +283,73 @@ class CycloneDetailResponse(BaseModel):
     intensityTrend: CycloneIntensityTrend
     provenance: DataProvenance
 
+class CoastalDistrictExposure(BaseModel):
+    districtId: str
+    districtName: str
+    state: str
+    coastBasin: str
+    latitude: float
+    longitude: float
+    elevationM: float
+    populationLakhs: float
+    minTrackDistanceKm: float
+    closestApproachTimestampUtc: str
+    estimatedPeakWindKmh: float
+    estimatedRainfall24hMm: float
+    estimatedRainfall72hMm: float
+    surgeVulnerabilityIndex: float = Field(..., description="Relative coastal bathymetry/low-elevation surge exposure index (0-100)")
+    exposureScore: float = Field(..., description="Composite geographical exposure score (0-100)")
+    exposureTier: str = Field(..., description="EXPOSURE_CRITICAL, EXPOSURE_HIGH, EXPOSURE_MODERATE, EXPOSURE_LOW")
+    recommendedAction: str
+    isValidatedImpactPrediction: bool = Field(
+        False,
+        description="Explicit flag: False indicates geographical exposure estimate, not a hydrodynamic storm-surge simulation"
+    )
+
+class CoastalExposureResponse(BaseModel):
+    cycloneId: str
+    stormName: str
+    imdCategory: str
+    criticalDistrictsCount: int
+    highExposureDistrictsCount: int
+    totalExposedPopulationLakhs: float
+    districts: List[CoastalDistrictExposure]
+    methodologyDisclaimer: str
+    provenance: DataProvenance
+
+class CompoundFloodRiskRequest(BaseModel):
+    cycloneId: str
+    districtId: Optional[str] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    locationName: Optional[str] = None
+    elevationM: Optional[float] = None
+    overrideRainfall24hMm: Optional[float] = None
+    overrideRainfall72hMm: Optional[float] = None
+
+class CompoundFloodRiskResponse(BaseModel):
+    cycloneId: str
+    stormName: str
+    imdCategory: str
+    targetLocation: str
+    state: str
+    latitude: float
+    longitude: float
+    elevationM: float
+    distanceToTrackKm: float
+    cycloneWindExposureKmh: float
+    cycloneInducedRainfall24hMm: float
+    cycloneInducedRainfall72hMm: float
+    floodModelProbability: float = Field(..., description="Probability (0-100%) from existing 15-feature XGBoost+RF Flood Ensemble")
+    floodModelRiskLevel: str
+    surgeExposureTier: str
+    compoundRiskScore: float = Field(..., description="Combined Multi-Hazard Cyclone + Flood + Coastal Low-Elevation Risk (0-100%)")
+    compoundRiskLevel: str = Field(..., description="CRITICAL_COMPOUND, HIGH_COMPOUND, MODERATE_COMPOUND, LOW_COMPOUND")
+    floodRiskFactors: List[RiskFactor]
+    compoundDrivers: List[dict]
+    operationalRecommendation: str
+    integrationArchitectureNote: str
+    provenance: DataProvenance
+
+
 
