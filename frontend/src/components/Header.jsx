@@ -3,6 +3,7 @@ import { geocodeLocation, reverseGeocodeCoords } from '../services/api';
 
 export default function Header({
   onToggleSidebar,
+  isSidebarHidden = false,
   onOpenAlerts,
   onOpenProfile,
   onDownloadApp,
@@ -155,17 +156,19 @@ export default function Header({
         <button
           className="menu-toggle-btn"
           onClick={onToggleSidebar}
-          aria-label="Toggle menu"
+          aria-label="Toggle navigation sidebar"
+          title={isSidebarHidden ? 'Show Navigation Sidebar' : 'Hide / Toggle Navigation Sidebar'}
           style={{
-            background: 'rgba(30, 41, 59, 0.6)',
-            border: '1px solid rgba(56, 189, 248, 0.25)',
+            background: isSidebarHidden ? 'rgba(2, 132, 199, 0.25)' : 'rgba(30, 41, 59, 0.6)',
+            border: isSidebarHidden ? '1px solid #38bdf8' : '1px solid rgba(56, 189, 248, 0.25)',
             color: '#38bdf8',
             borderRadius: '8px',
             padding: '6px',
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center'
+            justifyContent: 'center',
+            transition: 'all 0.15s ease'
           }}
         >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">

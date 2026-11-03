@@ -34,6 +34,7 @@ import {
 
 export default function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [desktopSidebarHidden, setDesktopSidebarHidden] = useState(false);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [selectedCycloneIdForView, setSelectedCycloneIdForView] = useState(null);
   const [modalState, setModalState] = useState({ isOpen: false, type: null });
@@ -375,11 +376,23 @@ export default function App() {
   };
 
 
+  const handleToggleSidebar = () => {
+    if (typeof window !== 'undefined' && window.innerWidth <= 992) {
+      setSidebarOpen(prev => !prev);
+    } else {
+      setDesktopSidebarHidden(prev => !prev);
+      setTimeout(() => {
+        window.dispatchEvent(new Event('resize'));
+      }, 180);
+    }
+  };
+
   return (
     <div className="app-container">
       {/* LEFT SIDEBAR */}
       <Sidebar
         isOpen={sidebarOpen}
+        isDesktopHidden={desktopSidebarHidden}
         activeTab={activeTab}
         onSelectTab={handleSelectTab}
         onOpenModal={(type) => setModalState({ isOpen: true, type })}
@@ -389,7 +402,8 @@ export default function App() {
       {/* MAIN WRAPPER */}
       <main className="main-wrapper">
         <Header
-          onToggleSidebar={() => setSidebarOpen(prev => !prev)}
+          onToggleSidebar={handleToggleSidebar}
+          isSidebarHidden={desktopSidebarHidden}
           onOpenAlerts={() => setActiveTab('alerts')}
           onOpenProfile={() => setActiveTab('about')}
           onDownloadApp={() => setIsDownloadModalOpen(true)}

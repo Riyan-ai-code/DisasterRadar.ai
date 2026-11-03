@@ -5,7 +5,7 @@ const SNAP_COLLAPSE_THRESHOLD = 135;
 const DEFAULT_SIDEBAR_WIDTH = 240;
 const MAX_SIDEBAR_WIDTH = 420;
 
-export default function Sidebar({ isOpen, activeTab, onSelectTab, onOpenModal, onDownloadApp }) {
+export default function Sidebar({ isOpen, isDesktopHidden = false, activeTab, onSelectTab, onOpenModal, onDownloadApp }) {
   const [sidebarWidth, setSidebarWidth] = useState(() => {
     try {
       const saved = Number(localStorage.getItem('disasterradar_sidebar_width'));
@@ -150,21 +150,26 @@ export default function Sidebar({ isOpen, activeTab, onSelectTab, onOpenModal, o
     )}
   ];
 
+  const effectiveWidth = isDesktopHidden ? 0 : sidebarWidth;
+
   return (
     <aside
       ref={sidebarRef}
-      className={`sidebar ${isOpen ? 'open' : ''} ${isCompact ? 'sidebar-compact' : ''}`}
+      className={`sidebar ${isOpen ? 'open' : ''} ${isCompact ? 'sidebar-compact' : ''} ${isDesktopHidden ? 'sidebar-hidden-desktop' : ''}`}
       style={{
-        width: `${sidebarWidth}px`,
-        minWidth: `${sidebarWidth}px`,
-        maxWidth: `${sidebarWidth}px`,
+        width: `${effectiveWidth}px`,
+        minWidth: `${effectiveWidth}px`,
+        maxWidth: `${effectiveWidth}px`,
         position: 'relative',
+        overflow: isDesktopHidden ? 'hidden' : 'visible',
         background: 'rgba(8, 12, 22, 0.95)',
-        borderRight: isResizing || isHoveringHandle
+        borderRight: isDesktopHidden
+          ? 'none'
+          : isResizing || isHoveringHandle
           ? '1px solid rgba(56, 189, 248, 0.75)'
           : '1px solid rgba(56, 189, 248, 0.15)',
-        transition: isResizing ? 'none' : 'width 0.15s ease, min-width 0.15s ease, max-width 0.15s ease, border-color 0.15s ease',
-        padding: isCompact ? '16px 8px 20px 8px' : '16px 14px 20px 14px'
+        transition: isResizing ? 'none' : 'width 0.18s ease, min-width 0.18s ease, max-width 0.18s ease, padding 0.18s ease, border-color 0.15s ease',
+        padding: isDesktopHidden ? '0px' : isCompact ? '16px 8px 20px 8px' : '16px 14px 20px 14px'
       }}
     >
       <div>
