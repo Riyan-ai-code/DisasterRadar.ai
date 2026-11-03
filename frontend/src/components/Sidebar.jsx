@@ -322,73 +322,36 @@ export default function Sidebar({ isOpen, isDesktopHidden = false, activeTab, on
         </button>
 
         {!isCompact ? (
-          <>
+          <div className="dev-credit" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px', overflow: 'hidden' }}>
             <div
-              className="about-box"
+              className="dev-icon"
               style={{
-                background: 'rgba(15, 23, 42, 0.6)',
-                border: '1px solid rgba(56, 189, 248, 0.12)',
-                borderRadius: '8px',
-                padding: '10px'
+                width: '28px',
+                height: '28px',
+                flexShrink: 0,
+                borderRadius: '6px',
+                background: 'rgba(56, 189, 248, 0.1)',
+                border: '1px solid rgba(56, 189, 248, 0.2)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#38bdf8'
               }}
             >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                <h4 style={{ margin: 0, fontSize: '0.72rem', color: '#38bdf8', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                  Sidebar Width
-                </h4>
-                <span style={{ fontSize: '0.68rem', color: '#94a3b8', fontWeight: 700 }}>
-                  {sidebarWidth}px
-                </span>
-              </div>
-              <input
-                type="range"
-                min="180"
-                max={MAX_SIDEBAR_WIDTH}
-                value={Math.max(180, sidebarWidth)}
-                onChange={(e) => {
-                  const val = Number(e.target.value);
-                  setSidebarWidth(val);
-                  persistWidth(val);
-                }}
-                title="Slide or drag the right border of the sidebar to adjust width"
-                style={{ width: '100%', accentColor: '#38bdf8', cursor: 'pointer', height: '4px', marginBottom: '6px' }}
-              />
-              <p style={{ margin: 0, fontSize: '0.65rem', color: '#94a3b8', lineHeight: 1.35 }}>
-                Drag the right edge or use slider to resize ({MIN_SIDEBAR_WIDTH}px–{MAX_SIDEBAR_WIDTH}px).
-              </p>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="4" y="4" width="16" height="16" rx="2"/>
+                <rect x="9" y="9" width="6" height="6"/>
+                <line x1="9" y1="2" x2="9" y2="4"/>
+                <line x1="15" y1="2" x2="15" y2="4"/>
+              </svg>
             </div>
-
-            <div className="dev-credit" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '12px', overflow: 'hidden' }}>
-              <div
-                className="dev-icon"
-                style={{
-                  width: '28px',
-                  height: '28px',
-                  flexShrink: 0,
-                  borderRadius: '6px',
-                  background: 'rgba(56, 189, 248, 0.1)',
-                  border: '1px solid rgba(56, 189, 248, 0.2)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: '#38bdf8'
-                }}
-              >
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <rect x="4" y="4" width="16" height="16" rx="2"/>
-                  <rect x="9" y="9" width="6" height="6"/>
-                  <line x1="9" y1="2" x2="9" y2="4"/>
-                  <line x1="15" y1="2" x2="15" y2="4"/>
-                </svg>
-              </div>
-              <div className="dev-text" style={{ minWidth: 0, overflow: 'hidden' }}>
-                <span className="dev-label" style={{ fontSize: '0.62rem', color: '#64748b', display: 'block' }}>Engine</span>
-                <span className="dev-team" style={{ fontSize: '0.74rem', color: '#e2e8f0', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'block' }}>
-                  Disaster Intelligence Lab
-                </span>
-              </div>
+            <div className="dev-text" style={{ minWidth: 0, overflow: 'hidden' }}>
+              <span className="dev-label" style={{ fontSize: '0.62rem', color: '#64748b', display: 'block' }}>Engine</span>
+              <span className="dev-team" style={{ fontSize: '0.74rem', color: '#e2e8f0', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'block' }}>
+                Disaster Intelligence Lab
+              </span>
             </div>
-          </>
+          </div>
         ) : (
           <button
             onClick={toggleCompactOrDefault}
