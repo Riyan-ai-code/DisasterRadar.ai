@@ -33,7 +33,7 @@ export default function CycloneMonitorView({
   const [viewMode, setViewMode] = useState(initialCycloneId ? 'historical' : 'live'); // 'live' | 'historical'
   const [activeBasinData, setActiveBasinData] = useState(null);
   const [historicalList, setHistoricalList] = useState([]);
-  const [selectedCycloneId, setSelectedCycloneId] = useState(initialCycloneId || 'nio-2023-michaung');
+  const [selectedCycloneId, setSelectedCycloneId] = useState(initialCycloneId || 'nio-2026-arnab');
   const [cycloneDetail, setCycloneDetail] = useState(null);
   const [coastalExposure, setCoastalExposure] = useState(null);
   const [selectedDistrictId, setSelectedDistrictId] = useState(null);

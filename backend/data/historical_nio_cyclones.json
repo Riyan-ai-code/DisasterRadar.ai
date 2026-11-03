@@ -4,9 +4,43 @@
     "basin": "NI (Bay of Bengal & Arabian Sea)",
     "authority": "India Meteorological Department (IMD RSMC New Delhi) & NOAA IBTrACS v04r01",
     "wind_averaging_period": "3-minute sustained (IMD WMO Standard)",
-    "last_curated": "2026-11-01"
+    "last_curated": "2026-11-04"
   },
   "cyclones": [
+    {
+      "id": "nio-2026-arnab",
+      "storm_name": "ARNAB",
+      "basin": "BOB",
+      "basin_FullName": "Bay of Bengal",
+      "season_year": 2026,
+      "status": "HISTORICAL_ARCHIVE",
+      "imd_category": "VSCS",
+      "imd_classification": "Very Severe Cyclonic Storm (VSCS)",
+      "max_sustained_wind_kmh": 135.0,
+      "max_sustained_wind_kt": 73.0,
+      "min_central_pressure_hpa": 972.0,
+      "movement_speed_kmh": 15.0,
+      "movement_direction_deg": 325.0,
+      "movement_direction_cardinal": "NW",
+      "landfall_location": "Narsapur / Kakinada & Yanam Coast, Andhra Pradesh",
+      "landfall_time_utc": "2026-10-27T20:30:00Z",
+      "peak_rainfall_24h_mm": 325.0,
+      "peak_rainfall_72h_mm": 510.0,
+      "affected_states": ["Andhra Pradesh", "Puducherry (Yanam)", "Odisha", "Chhattisgarh"],
+      "impact_summary": "Named by Bangladesh ('Ocean' in Bengali); rapidly intensified over warm Westcentral Bay of Bengal SSTs (>28.5°C) to strike the Andhra Pradesh-Yanam coast near Narsapur with 135 km/h winds (gusts to 150 km/h), 1.4m storm surge, and torrential Godavari-Krishna delta flooding.",
+      "source_authority": "IMD RSMC New Delhi & WMO/ESCAP Panel",
+      "last_bulletin_utc": "2026-10-29T06:00:00Z",
+      "track_points": [
+        {"point_type": "OBSERVED", "forecast_hour": 0, "timestamp_utc": "2026-10-24T12:00:00Z", "latitude": 12.1, "longitude": 87.4, "wind_speed_kmh": 50.0, "wind_speed_kt": 27.0, "pressure_hpa": 1000.0, "imd_category": "D", "uncertainty_radius_km": 0.0},
+        {"point_type": "OBSERVED", "forecast_hour": 0, "timestamp_utc": "2026-10-25T06:00:00Z", "latitude": 13.0, "longitude": 85.9, "wind_speed_kmh": 60.0, "wind_speed_kt": 32.0, "pressure_hpa": 996.0, "imd_category": "DD", "uncertainty_radius_km": 0.0},
+        {"point_type": "OBSERVED", "forecast_hour": 0, "timestamp_utc": "2026-10-26T00:00:00Z", "latitude": 14.1, "longitude": 84.5, "wind_speed_kmh": 85.0, "wind_speed_kt": 46.0, "pressure_hpa": 989.0, "imd_category": "CS", "uncertainty_radius_km": 0.0},
+        {"point_type": "OBSERVED", "forecast_hour": 0, "timestamp_utc": "2026-10-26T18:00:00Z", "latitude": 15.1, "longitude": 83.2, "wind_speed_kmh": 110.0, "wind_speed_kt": 60.0, "pressure_hpa": 980.0, "imd_category": "SCS", "uncertainty_radius_km": 0.0},
+        {"point_type": "OBSERVED", "forecast_hour": 0, "timestamp_utc": "2026-10-27T12:00:00Z", "latitude": 15.9, "longitude": 82.2, "wind_speed_kmh": 135.0, "wind_speed_kt": 73.0, "pressure_hpa": 972.0, "imd_category": "VSCS", "uncertainty_radius_km": 0.0},
+        {"point_type": "OFFICIAL_FORECAST", "forecast_hour": 12, "timestamp_utc": "2026-10-28T00:00:00Z", "latitude": 16.5, "longitude": 81.6, "wind_speed_kmh": 125.0, "wind_speed_kt": 68.0, "pressure_hpa": 976.0, "imd_category": "VSCS", "uncertainty_radius_km": 40.0},
+        {"point_type": "OFFICIAL_FORECAST", "forecast_hour": 24, "timestamp_utc": "2026-10-28T12:00:00Z", "latitude": 17.6, "longitude": 81.4, "wind_speed_kmh": 85.0, "wind_speed_kt": 46.0, "pressure_hpa": 988.0, "imd_category": "CS", "uncertainty_radius_km": 70.0},
+        {"point_type": "OFFICIAL_FORECAST", "forecast_hour": 36, "timestamp_utc": "2026-10-29T00:00:00Z", "latitude": 19.0, "longitude": 81.9, "wind_speed_kmh": 55.0, "wind_speed_kt": 30.0, "pressure_hpa": 996.0, "imd_category": "DD", "uncertainty_radius_km": 105.0}
+      ]
+    },
     {
       "id": "nio-2023-michaung",
       "storm_name": "MICHAUNG",

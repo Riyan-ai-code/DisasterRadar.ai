@@ -92,6 +92,7 @@ def test_historical_cyclones_seeded_and_track_retrieval():
     assert len(hist_list) >= 5
 
     ids = {c.id for c in hist_list}
+    assert "nio-2026-arnab" in ids
     assert "nio-2023-michaung" in ids
     assert "nio-2020-amphan" in ids
 

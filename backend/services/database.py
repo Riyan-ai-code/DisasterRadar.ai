@@ -165,10 +165,8 @@ def init_database():
     if cursor.fetchone()[0] == 0:
         seed_historical_data(conn)
 
-    # Seed verified North Indian Ocean historical cyclones if empty
-    cursor.execute("SELECT COUNT(*) FROM cyclone_events")
-    if cursor.fetchone()[0] == 0:
-        seed_cyclone_archive_data(conn)
+    # Seed/sync verified North Indian Ocean historical cyclones from JSON catalog
+    seed_cyclone_archive_data(conn)
         
     conn.close()
 
