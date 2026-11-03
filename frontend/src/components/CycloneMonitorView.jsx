@@ -1065,7 +1065,7 @@ export default function CycloneMonitorView({
                 </span>
               </div>
               <p style={{ margin: '0 0 10px', fontSize: '0.72rem', color: '#94a3b8' }}>
-                Evaluates 24-hour rapid intensification potential ($\Delta V \ge 30\text{ kt}$) from kinematic persistence, central pressure drop, and coastal land interaction:
+                Evaluates 24-hour rapid intensification potential (ΔV ≥ 30 kt / 55 km/h) from kinematic persistence, central pressure drop, and coastal land interaction:
               </p>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>

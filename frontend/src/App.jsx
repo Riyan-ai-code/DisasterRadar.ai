@@ -302,11 +302,13 @@ export default function App() {
 
   // Handle Station selection from Map
   const handleSelectStation = (station) => {
-    setActiveLocation({
+    setLocationTab('explore');
+    setExploredLocation({
       name: station.name,
       country: 'Karnataka, India',
       lat: station.lat,
-      lng: station.lng
+      lng: station.lng,
+      elevation: station.elev
     });
 
     const updatedParams = {
@@ -337,11 +339,13 @@ export default function App() {
 
 
   const handleGlobePredict = (locData) => {
-    setActiveLocation({
+    setLocationTab('explore');
+    setExploredLocation({
       name: locData.name,
       country: locData.country || '',
       lat: locData.lat,
-      lng: locData.lng
+      lng: locData.lng,
+      elevation: locData.elev ?? locData.elevation ?? 15
     });
 
     const updatedParams = {
