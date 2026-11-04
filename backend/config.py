@@ -56,7 +56,22 @@ class Settings:
     GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
     GEMINI_MODEL: str = os.getenv("GEMINI_MODEL", "gemini-3.5-flash-lite")
 
-    # 7. Application Settings
+    # 7. Tropical Cyclone & Doppler Radar APIs
+    GDACS_TC_URL: str = os.getenv(
+        "GDACS_TC_URL",
+        "https://www.gdacs.org/gdacsapi/api/events/geteventlist/MAP?eventtypes=TC"
+    )
+    RAINVIEWER_RADAR_URL: str = os.getenv(
+        "RAINVIEWER_RADAR_URL",
+        "https://api.rainviewer.com/public/weather-maps.json"
+    )
+    BIGDATACLOUD_REVERSE_GEOCODE_URL: str = os.getenv(
+        "BIGDATACLOUD_REVERSE_GEOCODE_URL",
+        "https://api.bigdatacloud.net/data/reverse-geocode-client"
+    )
+    CYCLONE_CACHE_TTL_SECONDS: int = int(os.getenv("CYCLONE_CACHE_TTL_SECONDS", 300))
+
+    # 8. Application Settings
     APP_ENV: str = os.getenv("APP_ENV", "development")
     APP_PORT: int = int(os.getenv("APP_PORT", 8000))
     APP_HOST: str = os.getenv("APP_HOST", "127.0.0.1")
