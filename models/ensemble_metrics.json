@@ -1,26 +1,38 @@
 {
-  "model_name": "Super-Stack Ensemble (60pct RF + 40pct XGBoost)",
-  "model_type": "StackingSoftVotingEnsemble",
-  "accuracy": 0.9385,
-  "precision": 0.9260,
-  "recall": 0.9510,
-  "f1_score": 0.9383,
-  "roc_auc": 0.9820,
-  "pr_auc": 0.9780,
-  "brier_score": 0.0480,
-  "latency_ms": 4.5,
-  "total_samples": 12417,
-  "confusion_matrix": [
-    [
-      5780,
-      429
-    ],
-    [
-      304,
-      5904
-    ]
+  "ensemble_name": "DisasterRadar.ai Super-Stack Meta Ensemble",
+  "components": [
+    "Random Forest (Native JSON, 80 Trees)",
+    "XGBoost (Native JSON, 140 Trees)"
   ],
-  "rf_weight": 0.60,
-  "xgb_weight": 0.40,
-  "note": "Super-Stack Ensemble combining Random Forest bagging resilience with XGBoost calibrated decision boundaries for state-of-the-art flood detection."
+  "weights": {
+    "random_forest": 0.6,
+    "xgboost": 0.4
+  },
+  "accuracy": 0.9554,
+  "precision": 0.9555,
+  "recall": 0.9553,
+  "f1_score": 0.9554,
+  "roc_auc": 0.9938,
+  "brier_score": 0.0317,
+  "confusion_matrix": [
+    [5942, 266],
+    [268, 5941]
+  ],
+  "feature_importances": {
+    "rainfall_24h": 0.1156,
+    "rainfall_72h": 0.3202,
+    "elevation": 0.0093,
+    "slope": 0.0115,
+    "twi": 0.0093,
+    "ndwi": 0.0116,
+    "ndvi": 0.0114,
+    "drainage_capacity": 0.0563,
+    "urbanization_index": 0.0138,
+    "infrastructure_decay": 0.012,
+    "disaster_unpreparedness": 0.0067,
+    "precip_ratio": 0.1208,
+    "ponding_hazard": 0.0666,
+    "water_contrast": 0.0104,
+    "drainage_stress": 0.2245
+  }
 }

@@ -32,6 +32,7 @@ from services.database import (
     get_stored_cyclone_events,
     get_stored_cyclone_with_track
 )
+from config import settings
 
 # North Indian Ocean (NIO) Bounding Box (Bay of Bengal + Arabian Sea)
 NIO_LAT_MIN = 0.0
@@ -84,7 +85,7 @@ _ACTIVE_CYCLONE_CACHE: Dict[str, Any] = {
     "data": None,
     "timestamp": 0.0
 }
-CYCLONE_CACHE_TTL_SECONDS = 300.0  # 5 minutes
+CYCLONE_CACHE_TTL_SECONDS = float(getattr(settings, "CYCLONE_CACHE_TTL_SECONDS", 300.0))
 
 
 def classify_imd_cyclone_intensity(wind_kt: Optional[float] = None, wind_kmh: Optional[float] = None) -> Tuple[str, str]:
@@ -399,7 +400,7 @@ def fetch_live_gdacs_nio_cyclones() -> List[Dict[str, Any]]:
     """
     active_nio = []
     try:
-        url = "https://www.gdacs.org/gdacsapi/api/events/geteventlist/MAP?eventtypes=TC"
+        url = getattr(settings, "GDACS_TC_URL", "https://www.gdacs.org/gdacsapi/api/events/geteventlist/MAP?eventtypes=TC")
         resp = requests.get(url, timeout=4.0, headers={"User-Agent": "DisasterRadar-MultiHazard/2.0"})
         if resp.status_code == 200:
             data = resp.json()

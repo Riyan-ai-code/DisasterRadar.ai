@@ -1,28 +1,31 @@
 {
-  "model_name": "Random Forest Flood Risk Classifier (100 Trees Bagging)",
+  "model_name": "Random Forest Flood Risk Classifier (80 Trees Bagging)",
   "model_type": "sklearn.ensemble.RandomForestClassifier",
   "serialization_format": "native_json",
   "model_file": "random_forest_model.json",
-  "accuracy": 0.9017,
-  "precision": 0.8759,
-  "recall": 0.9359,
-  "f1_score": 0.9049,
-  "roc_auc": 0.961,
-  "pr_auc": 0.9514,
-  "brier_score": 0.0742,
-  "oob_score": 0.9029,
-  "n_estimators": 100,
-  "max_depth": 14,
+  "accuracy": 0.9525,
+  "precision": 0.9513,
+  "recall": 0.9539,
+  "f1_score": 0.9526,
+  "roc_auc": 0.9928,
+  "pr_auc": 0.993,
+  "brier_score": 0.0347,
+  "n_estimators": 80,
+  "max_depth": 13,
   "confusion_matrix": [
     [
-      5386,
-      823
+      7874,
+      404
     ],
     [
-      398,
-      5810
+      382,
+      7896
     ]
   ],
+  "spatial_holdout_recall": 0.892,
+  "spatial_holdout_fnr": 0.108,
+  "spatial_holdout_accuracy": 0.915,
+  "spatial_validation_benchmark": "models/spatial_validation_benchmark.json",
   "feature_names": [
     "rainfall_24h",
     "rainfall_72h",
@@ -41,21 +44,20 @@
     "drainage_stress"
   ],
   "feature_importances": {
-    "elevation": 0.2688,
-    "ndvi": 0.2015,
-    "ponding_hazard": 0.1484,
-    "ndwi": 0.1351,
-    "slope": 0.0559,
-    "water_contrast": 0.0532,
-    "rainfall_72h": 0.0364,
-    "precip_ratio": 0.0338,
-    "rainfall_24h": 0.0249,
-    "twi": 0.0132,
-    "drainage_stress": 0.0123,
-    "drainage_capacity": 0.0048,
-    "infrastructure_decay": 0.0041,
-    "urbanization_index": 0.0039,
-    "disaster_unpreparedness": 0.0038
-  },
-  "generalization_diagnosis": "WELL GENERALIZED (Controlled variance, depth pruning prevented severe memorization)."
+    "rainfall_24h": 0.116,
+    "rainfall_72h": 0.3025,
+    "elevation": 0.0094,
+    "slope": 0.0105,
+    "twi": 0.0081,
+    "ndwi": 0.0151,
+    "ndvi": 0.0093,
+    "drainage_capacity": 0.0576,
+    "urbanization_index": 0.0106,
+    "infrastructure_decay": 0.01,
+    "disaster_unpreparedness": 0.0051,
+    "precip_ratio": 0.1417,
+    "ponding_hazard": 0.0686,
+    "water_contrast": 0.0122,
+    "drainage_stress": 0.2232
+  }
 }

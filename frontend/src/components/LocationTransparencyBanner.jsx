@@ -1,18 +1,11 @@
 import React, { useState } from 'react';
 import { geocodeLocation, reverseGeocodeCoords, fetchIpLocation } from '../services/api';
 
-const POPULAR_LOCATIONS = [
-  { name: 'Kharupetia, Assam', country: 'India', lat: 26.5181, lng: 92.1384, badge: 'Darrang Dist.' },
-  { name: 'Guwahati, Assam', country: 'India', lat: 26.1445, lng: 91.7362, badge: 'Brahmaputra Basin' },
-  { name: 'Silchar, Assam', country: 'India', lat: 24.8333, lng: 92.7789, badge: 'Barak Valley' },
-  { name: 'Dibrugarh, Assam', country: 'India', lat: 27.4728, lng: 94.9120, badge: 'Upper Assam' },
-  { name: 'Mira Bhayandar, Maharashtra', country: 'India', lat: 19.2952, lng: 72.8544, badge: 'Coastal Estuary' },
-  { name: 'Bengaluru, Karnataka', country: 'India', lat: 12.9716, lng: 77.5946, badge: 'Urban Catchment' }
-];
 
 export default function LocationTransparencyBanner({
   activeLocation,
   params,
+  prediction,
   isFetchingRealTelemetry,
   onLocationChange,
   externalModalOpen,
@@ -141,23 +134,75 @@ export default function LocationTransparencyBanner({
           zIndex: 30
         }}
       >
-        {/* Left: Active Location Identification */}
+        {/* Left: Active Location Identification & Honest Telemetry Status */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-          <div style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '6px',
-            background: 'rgba(16, 185, 129, 0.12)',
-            border: '1px solid rgba(16, 185, 129, 0.35)',
-            borderRadius: '999px',
-            padding: '3px 10px',
-            fontSize: '0.72rem',
-            color: '#34d399',
-            fontWeight: 700
-          }}>
-            <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10b981', display: 'inline-block' }} />
-            <span>LIVE TELEMETRY</span>
-          </div>
+          {(() => {
+            const status = (prediction?.status || params?.status || 'LIVE').toUpperCase();
+            const isSimulated = status === 'SIMULATED';
+            const isDelayed = status === 'DELAYED';
+            const isUnavailable = status === 'UNAVAILABLE';
+
+            const badgeBg = isSimulated
+              ? 'rgba(245, 158, 11, 0.16)'
+              : isUnavailable
+              ? 'rgba(239, 68, 68, 0.16)'
+              : isDelayed
+              ? 'rgba(234, 179, 8, 0.16)'
+              : 'rgba(16, 185, 129, 0.14)';
+
+            const badgeBorder = isSimulated
+              ? 'rgba(245, 158, 11, 0.45)'
+              : isUnavailable
+              ? 'rgba(239, 68, 68, 0.45)'
+              : isDelayed
+              ? 'rgba(234, 179, 8, 0.45)'
+              : 'rgba(16, 185, 129, 0.35)';
+
+            const badgeColor = isSimulated
+              ? '#fbbf24'
+              : isUnavailable
+              ? '#fca5a5'
+              : isDelayed
+              ? '#fde047'
+              : '#34d399';
+
+            const dotColor = isSimulated
+              ? '#f59e0b'
+              : isUnavailable
+              ? '#ef4444'
+              : isDelayed
+              ? '#eab308'
+              : '#10b981';
+
+            const labelText = isSimulated
+              ? 'SIMULATED / OFFLINE BASELINE'
+              : isUnavailable
+              ? 'TELEMETRY UNAVAILABLE'
+              : isDelayed
+              ? 'DELAYED TELEMETRY'
+              : 'LIVE TELEMETRY (Open-Meteo)';
+
+            return (
+              <div style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                background: badgeBg,
+                border: `1px solid ${badgeBorder}`,
+                borderRadius: '999px',
+                padding: '3px 10px',
+                fontSize: '0.72rem',
+                color: badgeColor,
+                fontWeight: 800,
+                letterSpacing: '0.02em'
+              }}
+              title={isSimulated ? "Real-time API was unreachable; baseline simulation parameters loaded." : "Data streaming from live Open-Meteo NWP & Copernicus DEM."}
+              >
+                <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: dotColor, display: 'inline-block' }} />
+                <span>{labelText}</span>
+              </div>
+            );
+          })()}
 
           <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', flexWrap: 'wrap' }}>
             <span style={{ color: '#94a3b8', fontSize: '0.8rem', fontWeight: 500 }}>
@@ -181,7 +226,7 @@ export default function LocationTransparencyBanner({
             )}
           </div>
 
-          {/* Quick Environmental Readings Pills */}
+          {/* Environmental Telemetry & Physical Depth Readings */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
             <span style={{
               fontSize: '0.72rem',
@@ -211,100 +256,42 @@ export default function LocationTransparencyBanner({
               borderRadius: '6px',
               border: '1px solid rgba(255, 255, 255, 0.1)'
             }}>
-              🌡️ Temp: <strong style={{ color: '#fb923c' }}>{params?.temperature ?? 25}°C</strong>
+              🌊 Inundation Depth: <strong style={{ color: (prediction?.inundationDepthMeters || 0) >= 0.45 ? '#ef4444' : ((prediction?.inundationDepthMeters || 0) >= 0.15 ? '#f59e0b' : '#38bdf8') }}>
+                {prediction?.inundationDepthMeters !== undefined ? `${prediction.inundationDepthMeters} m` : '0.00 m'}
+              </strong>
             </span>
+            {prediction?.depthTier && (
+              <span style={{
+                fontSize: '0.68rem',
+                color: (prediction?.inundationDepthMeters || 0) >= 0.45 ? '#fca5a5' : ((prediction?.inundationDepthMeters || 0) >= 0.15 ? '#fde68a' : '#94a3b8'),
+                background: 'rgba(0, 0, 0, 0.3)',
+                padding: '2px 7px',
+                borderRadius: '5px',
+                border: '1px solid rgba(255, 255, 255, 0.08)',
+                fontWeight: 600
+              }}>
+                {prediction.depthTier}
+              </span>
+            )}
+            {prediction?.missingMeasurements && prediction.missingMeasurements.length > 0 && (
+              <span style={{
+                fontSize: '0.68rem',
+                color: '#f59e0b',
+                background: 'rgba(245, 158, 11, 0.12)',
+                padding: '2px 7px',
+                borderRadius: '5px',
+                border: '1px solid rgba(245, 158, 11, 0.3)',
+                fontWeight: 600
+              }}
+              title={`Missing measurements: ${prediction.missingMeasurements.join(', ')}`}
+              >
+                ⚠️ {prediction.missingMeasurements.length} Missing Sensor(s) Defaulted
+              </span>
+            )}
           </div>
         </div>
 
-        {/* Right: Actions and Quick Switcher */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-          <button
-            onClick={handleOpenModal}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              background: '#0284c7',
-              color: '#ffffff',
-              border: '1px solid #38bdf8',
-              borderRadius: '8px',
-              padding: '6px 14px',
-              fontSize: '0.78rem',
-              fontWeight: 700,
-              cursor: 'pointer',
-              boxShadow: '0 2px 10px rgba(2, 132, 199, 0.35)',
-              transition: 'all 0.2s'
-            }}
-            title="Search any town, village, or district to view real-time flood telemetry"
-          >
-            <span>🔍</span>
-            <span>Change Town / Search</span>
-          </button>
-
-          <button
-            onClick={handleDetectDeviceGps}
-            disabled={isGpsLoading}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              background: 'rgba(16, 185, 129, 0.15)',
-              color: '#34d399',
-              border: '1px solid rgba(16, 185, 129, 0.4)',
-              borderRadius: '8px',
-              padding: '6px 12px',
-              fontSize: '0.78rem',
-              fontWeight: 700,
-              cursor: 'pointer',
-              transition: 'all 0.2s'
-            }}
-            title="Use your phone or computer device GPS"
-          >
-            <span>🎯</span>
-            <span>{isGpsLoading ? 'Locating...' : 'Use My GPS'}</span>
-          </button>
-        </div>
       </section>
-
-      {/* QUICK FLOOD HOTSPOTS SUB-STRIP */}
-      <div style={{
-        background: '#040711',
-        borderBottom: '1px solid rgba(255, 255, 255, 0.06)',
-        padding: '5px 24px',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '8px',
-        overflowX: 'auto',
-        fontSize: '0.7rem',
-        color: '#94a3b8'
-      }}>
-        <span style={{ fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px', whiteSpace: 'nowrap' }}>
-          Quick Switch:
-        </span>
-        {POPULAR_LOCATIONS.map((loc) => {
-          const isSelected = displayLocName.toLowerCase().includes(loc.name.split(',')[0].toLowerCase());
-          return (
-            <button
-              key={loc.name}
-              onClick={() => handleSelectLocation(loc)}
-              style={{
-                background: isSelected ? 'rgba(56, 189, 248, 0.2)' : 'rgba(255, 255, 255, 0.04)',
-                border: isSelected ? '1px solid #38bdf8' : '1px solid rgba(255, 255, 255, 0.1)',
-                color: isSelected ? '#38bdf8' : '#cbd5e1',
-                padding: '3px 8px',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                whiteSpace: 'nowrap',
-                fontSize: '0.7rem',
-                fontWeight: isSelected ? 700 : 500,
-                transition: 'all 0.15s'
-              }}
-            >
-              📍 {loc.name.split(',')[0]}
-            </button>
-          );
-        })}
-      </div>
 
       {/* MODAL: SELECT OR SEARCH YOUR EXACT TOWN */}
       {isModalOpen && (

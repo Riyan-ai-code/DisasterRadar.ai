@@ -54,25 +54,35 @@
 
 html, body {
   height: 100%;
+  margin: 0;
+  padding: 0;
   font-family: var(--font-family);
   background-color: #060911;
   color: var(--text-main);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  overflow-x: hidden;
+  overflow: hidden;
 }
 
 /* App Container Layout */
 .app-container {
   display: flex;
-  min-height: 100vh;
+  height: 100vh;
+  max-height: 100vh;
   width: 100%;
+  overflow: hidden;
 }
 
-/* Sidebar Styles */
+/* Sidebar Styles - Permanently fixed, never scrolls with page content */
 .sidebar {
   width: 240px;
   min-width: 76px;
+  height: 100vh;
+  max-height: 100vh;
+  position: sticky;
+  top: 0;
+  left: 0;
+  flex-shrink: 0;
   background-color: var(--sidebar-bg);
   color: var(--sidebar-text);
   display: flex;
@@ -82,7 +92,27 @@ html, body {
   z-index: 100;
   transition: transform var(--transition-normal);
   border-right: 1px solid rgba(255, 255, 255, 0.05);
-  flex-shrink: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.2) transparent;
+}
+
+.sidebar::-webkit-scrollbar {
+  width: 5px;
+}
+
+.sidebar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sidebar::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.2);
+  border-radius: 9999px;
+}
+
+.sidebar::-webkit-scrollbar-thumb:hover {
+  background: rgba(56, 189, 248, 0.45);
 }
 
 .brand-header {
@@ -224,7 +254,101 @@ html, body {
   display: flex;
   flex-direction: column;
   min-width: 0;
+  height: 100vh;
+  max-height: 100vh;
   background-color: var(--main-bg);
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.main-wrapper::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+/* Hidden Scrollbar Utility - Keeps 100% full scroll functioning while hiding clunky native browser bars */
+.hide-scrollbar,
+.no-scrollbar {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+.hide-scrollbar::-webkit-scrollbar,
+.no-scrollbar::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  background: transparent !important;
+}
+
+/* ==========================================================================
+   CHATGPT-STYLE FLOATING MINIMAL SCROLLBAR
+   - Ultra-thin 6px rounded floating pill
+   - 100% transparent track without background gutters
+   - Subtle slate translucent thumb that highlights cyan on hover
+   - Complete removal of legacy OS buttons and arrows
+   ========================================================================== */
+.chatgpt-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.22) transparent;
+}
+
+.chatgpt-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.chatgpt-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.chatgpt-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.22);
+  border-radius: 9999px;
+  transition: background 0.2s ease;
+}
+
+.chatgpt-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(56, 189, 248, 0.5);
+}
+
+.chatgpt-scrollbar::-webkit-scrollbar-button {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+/* Global scrollbar fallback to ensure zero stark white native OS bars anywhere */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.2) transparent;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.2);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(56, 189, 248, 0.45);
+}
+
+::-webkit-scrollbar-button {
+  display: none;
+  width: 0;
+  height: 0;
 }
 
 /* Top Navigation Bar */
@@ -2621,4 +2745,92 @@ html, body {
   z-index: 1000;
   color: #f8fafc;
 }
+
+/* Stress-Test Scenarios Horizontal Scrollbar Styling */
+.stress-scenarios-scroll-tabs {
+  scrollbar-width: thin;
+  scrollbar-color: #0284c7 rgba(15, 23, 42, 0.8);
+}
+
+.stress-scenarios-scroll-tabs::-webkit-scrollbar {
+  height: 6px;
+}
+
+.stress-scenarios-scroll-tabs::-webkit-scrollbar-track {
+  background: rgba(15, 23, 42, 0.7);
+  border-radius: 4px;
+}
+
+.stress-scenarios-scroll-tabs::-webkit-scrollbar-thumb {
+  background: #0284c7;
+  border-radius: 4px;
+  box-shadow: 0 0 6px rgba(56, 189, 248, 0.4);
+}
+
+.stress-scenarios-scroll-tabs::-webkit-scrollbar-thumb:hover {
+  background: #38bdf8;
+}
+
+/* Simulator Vertical (Down) Scrollbar Styling */
+.simulator-down-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #38bdf8 rgba(15, 23, 42, 0.85);
+  scrollbar-gutter: stable;
+}
+
+.simulator-down-scrollbar::-webkit-scrollbar {
+  width: 8px;
+}
+
+.simulator-down-scrollbar::-webkit-scrollbar-track {
+  background: rgba(15, 23, 42, 0.85);
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.simulator-down-scrollbar::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #0284c7, #38bdf8);
+  border-radius: 6px;
+  box-shadow: 0 0 8px rgba(56, 189, 248, 0.5);
+}
+
+.simulator-down-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #38bdf8;
+  box-shadow: 0 0 12px rgba(56, 189, 248, 0.8);
+}
+
+/* Chatbot Voice-to-Text Audio Wave & Recording Pulse Animations */
+@keyframes voiceMicPulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 0 0 10px rgba(239, 68, 68, 0);
+    transform: scale(1.08);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+    transform: scale(1);
+  }
+}
+
+@keyframes voiceWaveBounce {
+  0%, 100% {
+    height: 6px;
+    background-color: #38bdf8;
+  }
+  50% {
+    height: 22px;
+    background-color: #ef4444;
+  }
+}
+
+.voice-wave-bar {
+  width: 3px;
+  border-radius: 3px;
+  animation: voiceWaveBounce 0.8s ease-in-out infinite alternate;
+}
+
+
 

@@ -532,19 +532,19 @@ export default function EvacuationRouteView({ onBackToDashboard, activeLocation,
         : computeSafeEvacuationRoute(gpsFix.lat, gpsFix.lng, selectedShelter.lat, selectedShelter.lng);
 
       // Short links so the path visibly starts at your GPS and ends at the shelter pin
-      const connectorStyle = { color: '#10b981', weight: 2, opacity: 0.9, dashArray: '2, 6' };
+      const connectorStyle = { color: '#f59e0b', weight: 2, opacity: 0.9, dashArray: '2, 6' };
       const startLink = L.polyline([[gpsFix.lat, gpsFix.lng], routePoints[0]], connectorStyle).addTo(map);
       const endLink = L.polyline([routePoints[routePoints.length - 1], [selectedShelter.lat, selectedShelter.lng]], connectorStyle).addTo(map);
 
       const line = L.polyline(routePoints, {
-        color: '#10b981',
+        color: '#f59e0b',
         weight: 6,
         opacity: 0.95,
-        dashArray: r ? null : '4, 8',
+        dashArray: '6, 8',
         lineCap: 'round'
       }).addTo(map);
       line.bindTooltip(
-        `${selectedShelter.name}${r ? ` — ${r.distanceKm} km • ~${r.walkMin} min walk` : ' — routing...'}`,
+        `⚠️ UNVERIFIED ROUTE: ${selectedShelter.name}${r ? ` — ${r.distanceKm} km • ~${r.walkMin} min walk` : ' — routing...'} (Flood clearance unconfirmed — shortest road path only)`,
         { sticky: true }
       );
       layersRef.current.routePolyline.push(startLink, endLink, line);
@@ -1063,8 +1063,8 @@ export default function EvacuationRouteView({ onBackToDashboard, activeLocation,
               <span>Nearest Authority</span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span style={{ width: '16px', height: '3px', background: '#10b981', display: 'inline-block' }} />
-              <span>Evacuation Route</span>
+              <span style={{ width: '16px', height: '3px', background: '#f59e0b', borderTop: '1px dashed #fff', display: 'inline-block' }} />
+              <span style={{ color: '#fbbf24', fontWeight: 600 }}>⚠️ Unverified Road Path (Clearance Unchecked)</span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
               <span style={{ width: '12px', height: '12px', borderRadius: '50%', border: '1.5px dashed #f59e0b', display: 'inline-block' }} />
@@ -1208,6 +1208,106 @@ export default function EvacuationRouteView({ onBackToDashboard, activeLocation,
 
                     {/* Turn-by-Turn Offline Directions & SOS Beacon */}
                     <div style={{ background: '#0f172a', border: '1px solid rgba(56, 189, 248, 0.15)', borderRadius: '10px', padding: '16px' }}>
+                      
+                      {/* MANDATORY LIFE-SAFETY UNVERIFIED ROUTE WARNING BANNER */}
+                      <div style={{
+                        background: 'rgba(239, 68, 68, 0.12)',
+                        border: '2px solid #ef4444',
+                        borderRadius: '8px',
+                        padding: '12px 14px',
+                        marginBottom: '14px'
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                          <span style={{
+                            background: '#ef4444',
+                            color: '#ffffff',
+                            padding: '2px 8px',
+                            borderRadius: '4px',
+                            fontSize: '0.68rem',
+                            fontWeight: 900,
+                            letterSpacing: '0.04em'
+                          }}>
+                            ⚠️ UNVERIFIED ROUTE
+                          </span>
+                          <span style={{ color: '#fca5a5', fontSize: '0.74rem', fontWeight: 800 }}>
+                            Shortest Road Path Only • Flood Clearance Unconfirmed
+                          </span>
+                        </div>
+                        <p style={{ margin: '0 0 10px 0', fontSize: '0.72rem', color: '#cbd5e1', lineHeight: 1.5 }}>
+                          This route was calculated using standard road networks. <strong>Water depths, submerged culverts, and bridge washouts along this corridor HAVE NOT been field-verified.</strong> Never drive or wade through moving water (<em style={{ color: '#fef08a' }}>"Turn Around, Don't Drown"</em>). If water rises rapidly, execute <strong>vertical evacuation to upper concrete floors</strong>.
+                        </p>
+                        
+                        {/* Emergency Quick-Dial Buttons */}
+                        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                          <a href="tel:112" style={{
+                            background: '#dc2626',
+                            color: '#ffffff',
+                            textDecoration: 'none',
+                            padding: '5px 12px',
+                            borderRadius: '6px',
+                            fontSize: '0.72rem',
+                            fontWeight: 800,
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '5px',
+                            boxShadow: '0 2px 8px rgba(220, 38, 38, 0.4)'
+                          }}>
+                            <span>📞 Call National Disaster (112)</span>
+                          </a>
+                          <a href="tel:1070" style={{
+                            background: '#7f1d1d',
+                            color: '#fecaca',
+                            textDecoration: 'none',
+                            padding: '5px 10px',
+                            borderRadius: '6px',
+                            fontSize: '0.72rem',
+                            fontWeight: 700,
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            border: '1px solid rgba(239, 68, 68, 0.4)'
+                          }}>
+                            <span>📞 State Control (1070)</span>
+                          </a>
+                          <a href="tel:108" style={{
+                            background: '#1e293b',
+                            color: '#38bdf8',
+                            textDecoration: 'none',
+                            padding: '5px 10px',
+                            borderRadius: '6px',
+                            fontSize: '0.72rem',
+                            fontWeight: 700,
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            border: '1px solid rgba(56, 189, 248, 0.3)'
+                          }}>
+                            <span>🚑 Ambulance (108)</span>
+                          </a>
+                        </div>
+                      </div>
+
+                      {/* Elevation Dip & Low-Lying Micro-Depression Check */}
+                      {selectedShelter && gpsFix.elevation < 12 && (
+                        <div style={{
+                          background: 'rgba(245, 158, 11, 0.10)',
+                          border: '1px solid rgba(245, 158, 11, 0.35)',
+                          borderRadius: '6px',
+                          padding: '8px 12px',
+                          marginBottom: '12px',
+                          display: 'flex',
+                          alignItems: 'flex-start',
+                          gap: '8px',
+                          fontSize: '0.7rem',
+                          color: '#fde68a'
+                        }}>
+                          <span style={{ fontSize: '1rem' }}>⛰️</span>
+                          <div>
+                            <strong>Low-Contour Ground Warning ({gpsFix.elevation}m MSL):</strong> Current departure point is in a low-lying coastal/estuary basin. Road dips under highway underpasses or near stormwater canals will flood first.
+                          </div>
+                        </div>
+                      )}
+
                       <h3 style={{ margin: '0 0 12px 0', fontSize: '0.82rem', fontWeight: 700, color: '#f8fafc', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                         🧭 Turn-by-Turn Safe Navigation (Offline SOP)
                       </h3>

@@ -8,8 +8,9 @@ Tables:
 """
 
 import os
+import json
 import sqlite3
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from typing import List, Dict, Any, Optional
 
 # DB_DIR defaults to the backend/ folder for local dev. In production it should be
@@ -155,6 +156,42 @@ def init_database():
         imd_category TEXT NOT NULL,
         uncertainty_radius_km REAL DEFAULT 0.0,
         FOREIGN KEY (cyclone_id) REFERENCES cyclone_events(id)
+    );
+    """)
+
+    # 8. Multi-Factor System Alerts with Deduplication & Delivery Lifecycle
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS disaster_alerts (
+        id TEXT PRIMARY KEY,
+        location TEXT NOT NULL,
+        latitude REAL,
+        longitude REAL,
+        probability REAL NOT NULL,
+        risk_level TEXT NOT NULL,
+        alert_tier TEXT NOT NULL,
+        trigger_factors TEXT NOT NULL,
+        rate_of_rise REAL NOT NULL,
+        physical_depth_m REAL NOT NULL,
+        headline TEXT NOT NULL,
+        directive TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        status TEXT NOT NULL,
+        delivery_status TEXT NOT NULL,
+        channels TEXT NOT NULL,
+        citizen_confirms INTEGER DEFAULT 0,
+        citizen_assistance_needed INTEGER DEFAULT 0
+    );
+    """)
+
+    # 9. Citizen Emergency Acknowledgements
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS alert_acknowledgements (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        alert_id TEXT NOT NULL,
+        timestamp TEXT NOT NULL,
+        citizen_status TEXT NOT NULL,
+        comments TEXT,
+        device_id TEXT
     );
     """)
     
@@ -807,6 +844,7 @@ def ingest_station_telemetry(
     return {"status": "success", "recorded_at": now_str, "station_id": station_id}
 
 
+
 import json as _json
 
 def seed_cyclone_archive_data(conn: sqlite3.Connection):
@@ -934,4 +972,147 @@ def get_stored_cyclone_with_track(cyclone_id: str) -> Optional[Dict[str, Any]]:
     event_dict["track_points"] = [dict(t) for t in track_rows]
     return event_dict
 
+
+def check_alert_debounce(location: str, proposed_tier: str, window_minutes: int = 60) -> Dict[str, Any]:
+    """
+    Checks if an alert for this location was dispatched recently.
+    Suppresses duplicates if severity is equal/lower and within the window.
+    Escalates immediately if severity has increased (e.g. MODERATE -> CRITICAL).
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    tier_ranks = {
+        "NORMAL_SAFE": 0,
+        "MODERATE_WATCH": 1,
+        "HIGH_WARNING": 2,
+        "CRITICAL_EMERGENCY": 3
+    }
+    proposed_rank = tier_ranks.get(proposed_tier, 1)
+
+    cutoff = (datetime.now() - timedelta(minutes=window_minutes)).strftime("%Y-%m-%d %H:%M:%S")
+    
+    cursor.execute("""
+    SELECT id, alert_tier, created_at, status FROM disaster_alerts
+    WHERE location = ? AND created_at >= ? AND status = 'ACTIVE'
+    ORDER BY created_at DESC LIMIT 1
+    """, (location, cutoff))
+    
+    row = cursor.fetchone()
+    conn.close()
+    
+    if not row:
+        return {"should_dispatch": True, "reason": "NEW_ALERT_CYCLE", "previous_alert_id": None}
+        
+    last_tier = row["alert_tier"]
+    last_rank = tier_ranks.get(last_tier, 1)
+    
+    if proposed_rank > last_rank:
+        return {
+            "should_dispatch": True,
+            "reason": f"SEVERITY_ESCALATION ({last_tier} -> {proposed_tier})",
+            "previous_alert_id": row["id"]
+        }
+    else:
+        # Equal or lower severity within debounce window -> Suppress
+        return {
+            "should_dispatch": False,
+            "reason": f"SUPPRESSED_DUPLICATE: Active {last_tier} alert already dispatched within {window_minutes}m debounce window",
+            "previous_alert_id": row["id"]
+        }
+
+
+def record_disaster_alert(alert: Dict[str, Any]) -> str:
+    """Inserts a structured disaster alert into persistent ledger."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    cursor.execute("""
+    INSERT OR REPLACE INTO disaster_alerts (
+        id, location, latitude, longitude, probability, risk_level, alert_tier,
+        trigger_factors, rate_of_rise, physical_depth_m, headline, directive,
+        created_at, status, delivery_status, channels, citizen_confirms, citizen_assistance_needed
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """, (
+        alert["id"],
+        alert["location"],
+        alert.get("latitude", 0.0),
+        alert.get("longitude", 0.0),
+        alert["probability"],
+        alert["risk_level"],
+        alert["alert_tier"],
+        json.dumps(alert.get("trigger_factors", [])),
+        alert.get("rate_of_rise", 0.0),
+        alert.get("physical_depth_m", 0.0),
+        alert["headline"],
+        alert["directive"],
+        alert.get("created_at", datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
+        alert.get("status", "ACTIVE"),
+        alert.get("delivery_status", "DELIVERED"),
+        alert.get("channels", "SMS,WHATSAPP,CAP_BROADCAST"),
+        alert.get("citizen_confirms", 0),
+        alert.get("citizen_assistance_needed", 0)
+    ))
+    conn.commit()
+    conn.close()
+    return alert["id"]
+
+
+def record_citizen_acknowledgement(alert_id: str, citizen_status: str, comments: str = None, device_id: str = None) -> Dict[str, Any]:
+    """Records citizen safety confirmation and updates alert totals."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    
+    cursor.execute("""
+    INSERT INTO alert_acknowledgements (alert_id, timestamp, citizen_status, comments, device_id)
+    VALUES (?, ?, ?, ?, ?)
+    """, (alert_id, now_str, citizen_status, comments or "", device_id or "web_citizen"))
+    
+    if citizen_status in ("SAFE", "CONFIRMED_FLOOD_ON_GROUND"):
+        cursor.execute("UPDATE disaster_alerts SET citizen_confirms = citizen_confirms + 1 WHERE id = ?", (alert_id,))
+    elif citizen_status == "NEED_ASSISTANCE":
+        cursor.execute("UPDATE disaster_alerts SET citizen_assistance_needed = citizen_assistance_needed + 1 WHERE id = ?", (alert_id,))
+        
+    conn.commit()
+    conn.close()
+    return {"status": "recorded", "alert_id": alert_id, "citizen_status": citizen_status, "timestamp": now_str}
+
+
+def get_alerts_audit_log(limit: int = 50) -> List[Dict[str, Any]]:
+    """Retrieves chronological alert dispatches with delivery statuses and citizen feedback."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    cursor.execute("""
+    SELECT * FROM disaster_alerts
+    ORDER BY created_at DESC
+    LIMIT ?
+    """, (limit,))
+    rows = cursor.fetchall()
+    conn.close()
+    
+    results = []
+    for r in rows:
+        results.append({
+            "id": r["id"],
+            "location": r["location"],
+            "latitude": r["latitude"],
+            "longitude": r["longitude"],
+            "probability": r["probability"],
+            "risk_level": r["risk_level"],
+            "alert_tier": r["alert_tier"],
+            "trigger_factors": json.loads(r["trigger_factors"]) if r["trigger_factors"] else [],
+            "rate_of_rise": r["rate_of_rise"],
+            "physical_depth_m": r["physical_depth_m"],
+            "headline": r["headline"],
+            "directive": r["directive"],
+            "created_at": r["created_at"],
+            "status": r["status"],
+            "delivery_status": r["delivery_status"],
+            "channels": r["channels"].split(",") if r["channels"] else [],
+            "citizen_confirms": r["citizen_confirms"],
+            "citizen_assistance_needed": r["citizen_assistance_needed"]
+        })
+    return results
 

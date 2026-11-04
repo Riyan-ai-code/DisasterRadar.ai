@@ -151,6 +151,7 @@ The React Command Operating Center features a **user-resizable (`76px–420px`) 
 │  • Docker Multi-Stage Container (`Dockerfile`) + Prometheus (`:9090`) + Grafana (`:3000`) │
 └───────────────────────────────────────────────────────────────────────────────────────────┘
 ```
+```
 
 ---
 

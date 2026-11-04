@@ -16,9 +16,11 @@ import AboutProjectView from './components/AboutProjectView';
 import ModelPerformanceView from './components/ModelPerformanceView';
 import PredictRiskView from './components/PredictRiskView';
 import AiExplainerView from './components/AiExplainerView';
+import FloodPreventionChatbotView from './components/FloodPreventionChatbotView';
 import SplineAiGuardian from './components/SplineAiGuardian';
 import EvacuationRouteView from './components/EvacuationRouteView';
 import CycloneMonitorView from './components/CycloneMonitorView';
+import TimelineForecastView from './components/TimelineForecastView';
 import InstallAppModal from './components/InstallAppModal';
 import LocationTransparencyBanner from './components/LocationTransparencyBanner';
 
@@ -75,19 +77,13 @@ export default function App() {
   });
 
   // 2. Explored Location (for inspecting other cities/towns without changing home)
-  const [exploredLocation, setExploredLocation] = useState({
-    name: 'Guwahati, Assam',
-    country: 'India',
-    lat: 26.1445,
-    lng: 91.7362,
-    elevation: 55
-  });
+  const [exploredLocation, setExploredLocation] = useState(null);
 
   // 3. Location Mode Tab: 'myLocation' | 'explore'
   const [locationTab, setLocationTab] = useState('myLocation');
 
   // Active Geographic Zone for Risk Map and Telemetry
-  const activeLocation = locationTab === 'myLocation' ? homeLocation : exploredLocation;
+  const activeLocation = (locationTab === 'myLocation' || !exploredLocation) ? homeLocation : exploredLocation;
 
   const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
 
@@ -196,17 +192,23 @@ export default function App() {
     }
   }, [homeLocation.lat, homeLocation.lng]);
 
-  // Tab 1: Switch back to User's Home Location (Kharupetia, Assam)
+  // Tab 1: Switch back to User's Home Location
   const handleSwitchToMyLocation = async () => {
     setLocationTab('myLocation');
+    setExploredLocation(null);
     await handleLocationTelemetrySync(homeLocation, null, null, false);
   };
 
   // Tab 2: Switch to Exploring another city/town (preserves home location safely)
   const handleSwitchToExplore = async (locToExplore = null) => {
     setLocationTab('explore');
-    const target = locToExplore || exploredLocation;
-    await handleLocationTelemetrySync(target, null, null, true);
+    if (locToExplore) {
+      setExploredLocation(locToExplore);
+      await handleLocationTelemetrySync(locToExplore, null, null, true);
+    } else if (exploredLocation) {
+      await handleLocationTelemetrySync(exploredLocation, null, null, true);
+    }
+    // If no explored location is selected yet, let the user search first without forcing any default!
   };
 
   // Update User's Home Location permanently (ONLY via explicit "Not your location? Change it" / Set as Home)
@@ -438,12 +440,34 @@ export default function App() {
           </div>
         )}
 
+        {/* Persistent Telemetry Transparency Banner (Source, Status, Inundation Depth) */}
+        {activeTab !== 'chatbot' && (
+          <LocationTransparencyBanner
+            activeLocation={activeLocation}
+            params={params}
+            prediction={prediction}
+            isFetchingRealTelemetry={isFetchingRealTelemetry}
+            onLocationChange={handleLocationTelemetrySync}
+            externalModalOpen={isLocationModalOpen}
+            onCloseExternalModal={() => setIsLocationModalOpen(false)}
+          />
+        )}
+
         {activeTab === 'cyclone' ? (
           /* TROPICAL CYCLONE MONITOR & NIO FORECAST CONE VIEW */
           <CycloneMonitorView
             initialCycloneId={selectedCycloneIdForView}
             onBackToDashboard={() => setActiveTab('dashboard')}
             onSelectLocationForFloodPredict={handleGlobePredict}
+          />
+        ) : activeTab === 'timeline' ? (
+          /* MULTI-HORIZON TIMELINE FORECASTING (+3h, +6h, +12h, +24h, +48h) */
+          <TimelineForecastView
+            currentLocation={activeLocation}
+            params={params}
+            prediction={prediction}
+            onBackToDashboard={() => setActiveTab('dashboard')}
+            onOpenPredict={() => setActiveTab('predict')}
           />
         ) : activeTab === 'map' ? (
           /* 3D WORLD GLOBE & CARTOGRAPHIC GIS ATLAS VIEW */
@@ -468,6 +492,7 @@ export default function App() {
           <PredictRiskView
             currentLocation={activeLocation}
             homeLocation={homeLocation}
+            exploredLocation={exploredLocation}
             locationTab={locationTab}
             onSwitchToMyLocation={handleSwitchToMyLocation}
             onSwitchToExplore={handleSwitchToExplore}
@@ -520,6 +545,16 @@ export default function App() {
             onOpenPredict={() => setActiveTab('predict')}
             onOpenMap={() => setActiveTab('map')}
             onOpenPerformance={() => setActiveTab('performance')}
+          />
+        ) : activeTab === 'chatbot' ? (
+          /* DEDICATED FULL-PAGE FLOOD PREVENTION AI CHATBOT (POWERED BY GOOGLE GEMINI) */
+          <FloodPreventionChatbotView
+            currentLocation={activeLocation}
+            params={params}
+            prediction={prediction}
+            onBackToDashboard={() => setActiveTab('dashboard')}
+            onOpenPredict={() => setActiveTab('predict')}
+            onOpenMap={() => setActiveTab('map')}
           />
         ) : activeTab === 'about' ? (
           /* FULL-PAGE ABOUT PROJECT & ARCHITECTURE GUIDE VIEW */
@@ -582,11 +617,13 @@ export default function App() {
               latitude={prediction.latitude}
               longitude={prediction.longitude}
               recommendation={prediction.recommendation}
+              prediction={prediction}
               locationTab={locationTab}
               homeLocation={homeLocation}
               onSwitchToMyLocation={handleSwitchToMyLocation}
               onOpenExplainer={() => setActiveTab('explainer')}
             />
+
 
             {/* TWO-COLUMN GRID */}
             <div className="main-grid">
@@ -652,6 +689,53 @@ export default function App() {
         isOpen={isDownloadModalOpen}
         onClose={() => setIsDownloadModalOpen(false)}
       />
+
+      {/* FLOATING FLOODGUARD AI CHATBOT SUMMON LAUNCHER */}
+      {activeTab !== 'chatbot' && (
+        <button
+          onClick={() => handleSelectTab('chatbot')}
+          style={{
+            position: 'fixed',
+            bottom: '24px',
+            right: '28px',
+            background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
+            color: '#ffffff',
+            border: '1px solid rgba(56, 189, 248, 0.4)',
+            borderRadius: '30px',
+            padding: '12px 20px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+            fontSize: '0.9rem',
+            fontWeight: 800,
+            cursor: 'pointer',
+            boxShadow: '0 8px 25px rgba(2, 132, 199, 0.55)',
+            zIndex: 99,
+            transition: 'all 0.2s ease'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = 'translateY(-2px) scale(1.04)';
+            e.currentTarget.style.boxShadow = '0 12px 30px rgba(2, 132, 199, 0.75)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = 'translateY(0) scale(1)';
+            e.currentTarget.style.boxShadow = '0 8px 25px rgba(2, 132, 199, 0.55)';
+          }}
+        >
+          <span style={{ fontSize: '1.25rem' }}>🛡️</span>
+          <span>Ask FloodGuard AI</span>
+          <span style={{
+            background: '#ffffff',
+            color: '#0284c7',
+            borderRadius: '12px',
+            padding: '2px 8px',
+            fontSize: '0.7rem',
+            fontWeight: 800
+          }}>
+            Gemini
+          </span>
+        </button>
+      )}
 
     </div>
   );
