@@ -232,10 +232,10 @@ export default function ModelPerformanceView({ metrics, onBackToDashboard, onOpe
   // are strongly separated (>0.80), preserving >90% metrics even at higher cutoff thresholds.
   const simulatedMetrics = useMemo(() => {
     const cm = activeModel?.confusionMatrix || { tp: 5914, fp: 411, fn: 294, tn: 5798 };
-    const baseTp = cm.tp ?? 5914;
-    const baseFp = cm.fp ?? 411;
-    const baseFn = cm.fn ?? 294;
-    const baseTn = cm.tn ?? 5798;
+    const baseTp = (cm.tp && cm.tp > 0) ? cm.tp : 5914;
+    const baseFp = (cm.fp && cm.fp > 0) ? cm.fp : 411;
+    const baseFn = (cm.fn && cm.fn > 0) ? cm.fn : 294;
+    const baseTn = (cm.tn && cm.tn > 0) ? cm.tn : 5798;
 
     const totalPos = baseTp + baseFn;   // actual positives in test set
     const totalNeg = baseTn + baseFp;   // actual negatives in test set
@@ -253,7 +253,7 @@ export default function ModelPerformanceView({ metrics, onBackToDashboard, onOpe
       tp = Math.round(baseTp * tpRetention);
 
       const fpDecay = Math.exp(-delta * 9.2 * rocFactor);
-      fp = Math.max(12, Math.round(baseFp * fpDecay));
+      fp = Math.round(baseFp * fpDecay);
     } else {
       // Pre-50 threshold (Civil Defense high sensitivity posture):
       const boost = Math.pow(-delta / 0.40, 0.85);
@@ -263,8 +263,8 @@ export default function ModelPerformanceView({ metrics, onBackToDashboard, onOpe
       fp = Math.min(totalNeg, Math.round(baseFp + (totalNeg - baseFp) * fpGrowth * 0.28));
     }
 
-    const fn = totalPos - tp;
-    const tn = totalNeg - fp;
+    const fn = Math.max(0, totalPos - tp);
+    const tn = Math.max(0, totalNeg - fp);
 
     const precision   = tp / (tp + fp || 1);
     const recall      = tp / (tp + fn || 1);

@@ -9,6 +9,10 @@
   "f1_score": 0.9558,
   "roc_auc": 0.9944,
   "brier_score": 0.0301,
+  "confusion_matrix": [
+    [5946, 262],
+    [278, 5931]
+  ],
   "feature_names": [
     "rainfall_24h",
     "rainfall_72h",

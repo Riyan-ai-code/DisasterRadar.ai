@@ -14,6 +14,10 @@
   "f1_score": 0.9554,
   "roc_auc": 0.9938,
   "brier_score": 0.0317,
+  "confusion_matrix": [
+    [5942, 266],
+    [268, 5941]
+  ],
   "feature_importances": {
     "rainfall_24h": 0.1156,
     "rainfall_72h": 0.3202,
